@@ -1,43 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Cookies from 'js-cookie'; // Importar a biblioteca de cookies
+import { useAuth } from '../hooks/useAuth';
+import { validateLoginForm } from '../utils/validation';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const router = useRouter();
+  const { loading, error, setError, login, navigateToDashboard } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ Email: email, Password: password }),
-      });
+    // Validação usando funções separadas (SRP)
+    const validation = validateLoginForm(email, password);
+    if (!validation.isValid) {
+      setError(validation.error);
+      return;
+    }
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Falha no login');
-      }
-
-      const { token } = await res.json();
-      
-      // Alteração crucial: Guardar o token num cookie
-      Cookies.set('token', token, { expires: 1/24, path: '/' }); // Expira em 1 hora
-
-      router.push('/dashboard');
-
-    } catch (err) {
-      setError(err.message);
+    // Usar hook de autenticação (DIP)
+    const result = await login(email, password);
+    
+    if (result.success) {
+      navigateToDashboard();
     }
   };
 
@@ -73,8 +61,12 @@ export default function LoginForm() {
         </div>
 
         <div className="flex items-center justify-between">
-          <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
-            Entrar
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="bg-blue-500 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
+          >
+            {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </div>
 

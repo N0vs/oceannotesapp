@@ -1,48 +1,36 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '../../hooks/useAuth';
+import { validateRegisterForm } from '../../utils/validation';
 
 export default function RegistoPage() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const router = useRouter();
+  const { loading, error, setError, register, navigateToLogin } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError('');
     setSuccess(null);
 
-    if (!nome || !email || !password) {
-      setError('Todos os campos são obrigatórios.');
+    // Validação usando funções separadas (SRP)
+    const validation = validateRegisterForm(nome, email, password);
+    if (!validation.isValid) {
+      setError(validation.error);
       return;
     }
 
-    try {
-      const res = await fetch('/api/utilizadores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ Nome: nome, Email: email, Password: password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || 'Ocorreu um erro ao registar.');
-      }
-
+    // Usar hook de autenticação (DIP)
+    const result = await register(nome, email, password);
+    
+    if (result.success) {
       setSuccess('Utilizador registado com sucesso! A redirecionar para o login...');
       setTimeout(() => {
-        router.push('/');
+        navigateToLogin();
       }, 2000);
-
-    } catch (err) {
-      setError(err.message);
     }
   };
 
@@ -81,8 +69,12 @@ export default function RegistoPage() {
               className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
             />
           </div>
-          <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-md transition duration-300">
-            Registar
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white font-bold py-2 px-4 rounded-md transition duration-300"
+          >
+            {loading ? 'Registando...' : 'Registar'}
           </button>
           {error && <p className="text-red-500 text-center mt-4">{error}</p>}
           {success && <p className="text-green-500 text-center mt-4">{success}</p>}

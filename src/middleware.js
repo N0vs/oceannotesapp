@@ -3,30 +3,50 @@ import { jwtVerify } from 'jose';
 
 const secret = new TextEncoder().encode('sua_chave_secreta_super_segura');
 
-export async function middleware(req) {
-  const token = req.cookies.get('token')?.value;
-  const { pathname } = req.nextUrl;
+export async function middleware(request) {
+  const { pathname } = request.nextUrl;
+  console.log('Middleware executando para:', pathname);
 
-  // Se não há token e o usuário tenta acessar uma rota protegida
-  if (!token) {
-    if (pathname.startsWith('/api/auth') || pathname === '/' || pathname === '/registo') {
-      return NextResponse.next();
-    }
-    return NextResponse.redirect(new URL('/', req.url));
+  // Lista de rotas que não precisam de autenticação
+  const publicRoutes = [
+    '/',
+    '/login',
+    '/register',
+    '/registo',
+    '/api/auth/login',
+    '/api/utilizadores'
+  ];
+
+  // Se a rota é pública, permite o acesso
+  if (publicRoutes.includes(pathname)) {
+    console.log('Rota pública, permitindo acesso');
+    return NextResponse.next();
   }
 
-  // Se há um token, verifica se é válido
+  // Verifica se há um token JWT nos cookies
+  const token = request.cookies.get('token')?.value;
+  console.log('Token encontrado no middleware:', !!token);
+
+  if (!token) {
+    console.log('Sem token, redirecionando para login');
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
   try {
+    // Verifica se o token é válido
     await jwtVerify(token, secret);
+    console.log('Token válido, permitindo acesso');
     
-    if (pathname === '/' || pathname === '/registo') {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+    // Se o token é válido, permite o acesso
+    if (pathname === '/' || pathname === '/register') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     return NextResponse.next();
-
-  } catch (err) {
-    const response = NextResponse.redirect(new URL('/', req.url));
+  } catch (error) {
+    console.log('Token inválido:', error.message);
+    // Se o token é inválido, remove o cookie e redireciona para login
+    const response = NextResponse.redirect(new URL('/', request.url));
     response.cookies.delete('token');
     return response;
   }
@@ -34,6 +54,6 @@ export async function middleware(req) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };

@@ -1,4 +1,4 @@
-const pool = require('../config/database.js');
+import pool from '../config/database.js';
 
 class UtilizadorRepository {
   async create(utilizador) {
@@ -13,7 +13,14 @@ class UtilizadorRepository {
 
   async findByEmail(email) {
     const [rows] = await pool.query('SELECT * FROM Utilizador WHERE Email = ?', [email]);
-    return rows[0];
+    const user = rows[0];
+    
+    // Normalizar o campo ID para garantir consistência
+    if (user && (user.Id || user.ID)) {
+      user.id = user.Id || user.ID; // Garantir que sempre temos 'id' minúsculo
+    }
+    
+    return user;
   }
 
   async findById(id) {
@@ -24,4 +31,4 @@ class UtilizadorRepository {
   // Métodos de update e delete podem ser adicionados aqui no futuro
 }
 
-module.exports = new UtilizadorRepository();
+export default new UtilizadorRepository();

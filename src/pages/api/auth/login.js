@@ -1,4 +1,4 @@
-const UtilizadorService = require('../../../services/UtilizadorService.js');
+import UtilizadorService from '../../../services/UtilizadorService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

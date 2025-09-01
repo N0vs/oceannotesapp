@@ -1,13 +1,24 @@
-const pool = require('../config/database.js');
+import pool from '../config/database.js';
 
 class TopicoRepository {
   async create(topico) {
-    const { nome, cor, UtilizadorID } = topico;
+    const { nome, cor, utilizadorId } = topico;
     const [result] = await pool.query(
       'INSERT INTO Topico (nome, cor, UtilizadorID) VALUES (?, ?, ?)',
-      [nome, cor, UtilizadorID]
+      [nome, cor, utilizadorId]
     );
-    return { id: result.insertId, ...topico };
+    const [newTopico] = await pool.query('SELECT * FROM Topico WHERE ID = ?', [result.insertId]);
+    return newTopico[0];
+  }
+
+  async getByUtilizadorId(utilizadorId) {
+    const [rows] = await pool.query('SELECT * FROM Topico WHERE UtilizadorID = ?', [utilizadorId]);
+    return rows;
+  }
+
+  async getByIdAndUtilizadorId(id, utilizadorId) {
+    const [rows] = await pool.query('SELECT * FROM Topico WHERE ID = ? AND UtilizadorID = ?', [id, utilizadorId]);
+    return rows[0];
   }
 
   async findAll() {
@@ -35,4 +46,4 @@ class TopicoRepository {
   }
 }
 
-module.exports = new TopicoRepository();
+export default new TopicoRepository();

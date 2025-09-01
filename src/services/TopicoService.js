@@ -1,10 +1,16 @@
-const TopicoRepository = require('../repositories/TopicoRepository.js');
+import TopicoRepository from '../repositories/TopicoRepository.js';
 
 class TopicoService {
-  async create(topicoData, utilizadorId) {
-    // Validações futuras aqui
-    const dadosCompletos = { ...topicoData, UtilizadorID: utilizadorId };
-    return await TopicoRepository.create(dadosCompletos);
+  async create(topicoData) {
+    return await TopicoRepository.create(topicoData);
+  }
+
+  async getByUtilizadorId(utilizadorId) {
+    return await TopicoRepository.getByUtilizadorId(utilizadorId);
+  }
+
+  async getByIdAndUtilizadorId(id, utilizadorId) {
+    return await TopicoRepository.getByIdAndUtilizadorId(id, utilizadorId);
   }
 
   async findAll() {
@@ -24,4 +30,4 @@ class TopicoService {
   }
 }
 
-module.exports = new TopicoService();
+export default new TopicoService();

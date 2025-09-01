@@ -1,6 +1,6 @@
-const UtilizadorRepository = require('../repositories/UtilizadorRepository.js');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+import UtilizadorRepository from '../repositories/UtilizadorRepository.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 class UtilizadorService {
   async create(utilizadorData) {
@@ -28,6 +28,7 @@ class UtilizadorService {
 
   async login(email, password) {
     const utilizador = await UtilizadorRepository.findByEmail(email);
+    
     if (!utilizador) {
       throw new Error('Credenciais inválidas.'); // Mensagem genérica por segurança
     }
@@ -39,7 +40,7 @@ class UtilizadorService {
 
     // Usuário autenticado, gerar token JWT
     const payload = {
-      id: utilizador.Id,
+      id: utilizador.id, // Agora sempre disponível via normalização no repositório
       nome: utilizador.Nome,
     };
 
@@ -52,4 +53,4 @@ class UtilizadorService {
   }
 }
 
-module.exports = new UtilizadorService();
+export default new UtilizadorService();

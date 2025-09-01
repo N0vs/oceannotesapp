@@ -1,4 +1,4 @@
-const NotaService = require('../../../services/NotaService.js');
+import NotaService from '../../../services/NotaService.js';
 import authMiddleware from '../../../middlewares/authMiddleware.js';
 
 async function handler(req, res) {
@@ -7,7 +7,7 @@ async function handler(req, res) {
   switch (req.method) {
     case 'GET':
       try {
-        const nota = await NotaService.findById(id);
+        const nota = await NotaService.findByIdWithConsistentFields(id);
         if (nota) {
           res.status(200).json(nota);
         } else {
@@ -19,7 +19,7 @@ async function handler(req, res) {
       break;
     case 'PUT':
       try {
-        const atualizada = await NotaService.update(id, req.body);
+        const atualizada = await NotaService.updateWithConsistentFields(id, req.body, req.userId);
         if (atualizada) {
           res.status(200).json({ message: 'Nota atualizada com sucesso' });
         } else {
@@ -32,7 +32,7 @@ async function handler(req, res) {
     case 'DELETE':
       try {
         // A segurança é garantida no NotaService/NotaRepository
-        const deletada = await NotaService.delete(id, req.user.id);
+        const deletada = await NotaService.deleteWithConsistentFields(id, req.userId);
         if (deletada) {
           res.status(200).json({ message: 'Nota deletada com sucesso' });
         } else {
