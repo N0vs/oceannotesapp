@@ -1,0 +1,367 @@
+/* Aba de conflitos - Design elegante e não intrusivo */
+.conflictTab {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  max-width: 400px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.conflictTab.expanded {
+  right: 0;
+}
+
+/* Cabeçalho da aba */
+.tabHeader {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px 0 0 8px;
+  min-width: 120px;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.tabHeader:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateX(-2px);
+}
+
+.tabHeader.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.05); }
+}
+
+.tabIcon {
+  font-size: 18px;
+}
+
+.tabTitle {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: #ef4444;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.badge.badgeNew {
+  animation: badgePulse 1s ease-in-out 3;
+  background: #fbbf24;
+  color: #92400e;
+}
+
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.expandIcon {
+  font-size: 12px;
+  margin-left: auto;
+  transition: transform 0.3s ease;
+}
+
+/* Conteúdo expandido */
+.tabContent {
+  background: white;
+  border-radius: 0 0 0 8px;
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-right: none;
+  border-top: none;
+}
+
+.conflictHeader {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+}
+
+.conflictHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.dismissAll {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dismissAll:hover {
+  background: #4b5563;
+}
+
+/* Lista de conflitos */
+.conflictsList {
+  padding: 8px;
+}
+
+.conflictItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.conflictItem:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.conflictItem.high {
+  border-left: 4px solid #ef4444;
+}
+
+.conflictItem.medium {
+  border-left: 4px solid #f59e0b;
+}
+
+.conflictItem.low {
+  border-left: 4px solid #10b981;
+}
+
+/* Cabeçalho do item de conflito */
+.conflictItemHeader {
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+  transition: background 0.2s ease;
+}
+
+.conflictItemHeader:hover {
+  background: #f3f4f6;
+}
+
+.conflictInfo {
+  flex: 1;
+}
+
+.noteTitle {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.conflictMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.severity {
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.date {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.itemExpandIcon {
+  font-size: 12px;
+  color: #6b7280;
+  transition: transform 0.3s ease;
+}
+
+/* Detalhes do conflito */
+.conflictDetails {
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+.versionsComparison {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.version {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.version h5 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+}
+
+.versionInfo p {
+  margin: 4px 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.versionInfo strong {
+  color: #374151;
+}
+
+.versionDivider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.recommendation {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.recommendation h5 {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.recommendation p {
+  margin: 0;
+  font-size: 12px;
+  color: #1e40af;
+}
+
+/* Ações */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionButton {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: 1;
+  min-width: 80px;
+}
+
+.actionButton:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.actionButton.primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #2563eb;
+}
+
+.actionButton.primary:hover {
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.dismissButton {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dismissButton:hover {
+  background: #fecaca;
+  border-color: #f87171;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .conflictTab {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    transform: none;
+    max-width: none;
+    border-radius: 0;
+  }
+
+  .tabHeader {
+    border-radius: 0;
+    justify-content: center;
+  }
+
+  .tabContent {
+    border-radius: 0;
+    max-height: 50vh;
+  }
+
+  .versionsComparison {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .versionDivider {
+    display: none;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .actionButton {
+    flex: none;
+  }
+}
