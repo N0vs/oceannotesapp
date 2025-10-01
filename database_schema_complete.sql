@@ -5,10 +5,20 @@ USE oceannotes;
 CREATE TABLE Utilizador (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     Nome VARCHAR(100) NOT NULL,
+<<<<<<< HEAD
+    Password VARCHAR(255) NULL, -- NULL permitido para usuários Google
+    Email VARCHAR(100) UNIQUE NOT NULL,
+    GoogleId VARCHAR(255) NULL, -- ID do Google OAuth
+    Avatar TEXT NULL -- URL do avatar do Google
+);
+
+
+=======
     Password VARCHAR(255) NOT NULL,
     Email VARCHAR(100) UNIQUE NOT NULL
 );
 
+>>>>>>> ec0a69fcb83df0726dccb4da8c1308550dc5822b
 CREATE TABLE Topico (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
@@ -36,10 +46,19 @@ CREATE TABLE NotaTopico (
     ID INT AUTO_INCREMENT PRIMARY KEY,
     NotaID INT NOT NULL,
     TopicoID INT NOT NULL,
+<<<<<<< HEAD
+    UtilizadorID INT NOT NULL, -- NOVA COLUNA
+    DataCriacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (NotaID) REFERENCES Nota(id) ON DELETE CASCADE,
+    FOREIGN KEY (TopicoID) REFERENCES Topico(ID) ON DELETE CASCADE,
+    FOREIGN KEY (UtilizadorID) REFERENCES Utilizador(Id) ON DELETE CASCADE, -- NOVA FK
+    UNIQUE KEY unique_nota_topico_usuario (NotaID, TopicoID, UtilizadorID) -- UNIQUE ATUALIZADA
+=======
     DataCriacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (NotaID) REFERENCES Nota(id) ON DELETE CASCADE,
     FOREIGN KEY (TopicoID) REFERENCES Topico(ID) ON DELETE CASCADE,
     UNIQUE KEY unique_nota_topico (NotaID, TopicoID)
+>>>>>>> ec0a69fcb83df0726dccb4da8c1308550dc5822b
 );
 
 CREATE TABLE Midia (
