@@ -28,6 +28,29 @@ class UtilizadorRepository {
     return rows[0];
   }
 
+  /**
+   * Criar usuário via Google OAuth
+   */
+  async createGoogleUser(userData) {
+    const { Nome, Email, GoogleId, Avatar } = userData;
+    const [result] = await pool.query(
+      'INSERT INTO Utilizador (Nome, Email, GoogleId, Avatar, Password) VALUES (?, ?, ?, ?, ?)',
+      [Nome, Email, GoogleId, Avatar, null] // Password é null para usuários Google
+    );
+    const [newUtilizador] = await pool.query('SELECT Id, Nome, Email, GoogleId, Avatar FROM Utilizador WHERE Id = ?', [result.insertId]);
+    return newUtilizador[0];
+  }
+
+  /**
+   * Atualizar GoogleId de um usuário existente
+   */
+  async updateGoogleId(userId, googleId, avatar) {
+    await pool.query(
+      'UPDATE Utilizador SET GoogleId = ?, Avatar = ? WHERE Id = ?',
+      [googleId, avatar, userId]
+    );
+  }
+
   // Métodos de update e delete podem ser adicionados aqui no futuro
 }
 

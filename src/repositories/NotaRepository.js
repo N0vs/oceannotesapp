@@ -101,7 +101,7 @@ class NotaRepository {
    * Atualiza nota com campos padronizados e verificação robusta de propriedade
    * Segue SOLID - Single Responsibility Principle
    */
-  async updateWithConsistentFields(id, nota, utilizadorId) {
+/*   async updateWithConsistentFields(id, nota, utilizadorId) {
     const { titulo, conteudo } = nota;
     
     // Conversão explícita para garantir comparação correta
@@ -113,7 +113,37 @@ class NotaRepository {
       [titulo, conteudo, noteId, ownerId]
     );
     return result.affectedRows > 0;
+  } */
+ async updateWithConsistentFields(id, nota, utilizadorId) {
+  const { titulo, conteudo } = nota;
+  
+  // Conversão explícita para garantir comparação correta
+  const noteId = parseInt(id);
+  const ownerId = parseInt(utilizadorId);
+  
+  // Verificar se o usuário tem permissão para editar (proprietário ou com permissão editar/admin)
+  const [permissionCheck] = await pool.query(`
+    SELECT 
+      CASE 
+        WHEN n.UtilizadorID = ? THEN 'owner'
+        WHEN nc.TipoPermissao IN ('editar', 'admin') AND nc.Ativo = TRUE THEN nc.TipoPermissao
+        ELSE 'none'
+      END as permission
+    FROM Nota n
+    LEFT JOIN NotaCompartilhamento nc ON n.ID = nc.NotaID AND nc.UsuarioCompartilhadoID = ?
+    WHERE n.ID = ?
+  `, [ownerId, ownerId, noteId]);
+  
+  if (!permissionCheck.length || permissionCheck[0].permission === 'none') {
+    return false; // Sem permissão para editar
   }
+  
+  const [result] = await pool.query(
+    'UPDATE Nota SET Titulo = ?, Conteudo = ? WHERE ID = ?',
+    [titulo, conteudo, noteId]
+  );
+  return result.affectedRows > 0;
+}
 
   async getByUtilizadorId(utilizadorId) {
     const [rows] = await pool.query('SELECT * FROM Nota WHERE UtilizadorID = ? ORDER BY dataCriacao DESC', [utilizadorId]);
