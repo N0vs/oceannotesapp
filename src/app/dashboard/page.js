@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import NotesFilters from '../../components/NotesFilters';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import ShareNoteModal from '../../components/ShareNoteModal';
@@ -22,8 +23,15 @@ function DashboardContent() {
   const [newTopicName, setNewTopicName] = useState('');
   const [newTopicColor, setNewTopicColor] = useState('#3B82F6');
   const [showShareModal, setShowShareModal] = useState(null);
+  const [activeFilters, setActiveFilters] = useState(null);
 
-  const fetchNotes = async () => {
+  // Função callback para lidar com mudanças nos filtros
+  const handleFiltersChange = useCallback((filters) => {
+    setActiveFilters(filters);
+    fetchNotes(filters);
+  }, []);
+
+  const fetchNotes = async (filters = null) => {
     setLoading(true);
     const token = Cookies.get('token');
     console.log('Token encontrado:', !!token); // Debug
@@ -35,8 +43,36 @@ function DashboardContent() {
     }
 
     try {
-      console.log('Fazendo request para /api/notas');
-      const res = await fetch('/api/notas', {
+      let apiUrl = '/api/notas';
+      
+      // Se há filtros ativos, usar endpoint de filtros
+      if (filters && (
+        filters.searchText || 
+        filters.dateType !== 'all' || 
+        filters.selectedTopics.length > 0
+      )) {
+        const params = new URLSearchParams();
+        
+        if (filters.searchText) params.append('searchText', filters.searchText);
+        if (filters.dateType !== 'all') {
+          params.append('dateType', filters.dateType);
+          if (filters.specificDate) params.append('specificDate', filters.specificDate);
+          if (filters.startDate) params.append('startDate', filters.startDate);
+          if (filters.endDate) params.append('endDate', filters.endDate);
+          if (filters.month) params.append('month', filters.month);
+          if (filters.year) params.append('year', filters.year);
+        }
+        if (filters.selectedTopics.length > 0) {
+          filters.selectedTopics.forEach(topicId => {
+            params.append('selectedTopics', topicId);
+          });
+        }
+        
+        apiUrl = `/api/notas/filtered?${params.toString()}`;
+      }
+
+      console.log('Fazendo request para:', apiUrl);
+      const res = await fetch(apiUrl, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -444,6 +480,12 @@ function DashboardContent() {
               </div>
             </div>
           )}
+
+          {/* Componente de Filtros */}
+          <NotesFilters 
+            onFiltersChange={handleFiltersChange}
+            availableTopics={availableTopics}
+          />
 
           {/* Lista de notas */}
           <div className="bg-white shadow overflow-hidden sm:rounded-md">
