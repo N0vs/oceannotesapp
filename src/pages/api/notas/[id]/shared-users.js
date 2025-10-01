@@ -42,24 +42,24 @@ async function handler(req, res) {
     
     if (!isOwner) {
       const permission = await sharingService.getUserPermission(noteId, userId);
-      if (!permission || !['editar', 'admin'].includes(permission)) {
+      if (!permission || !['visualizar', 'editar', 'admin', 'owner'].includes(permission)) {
         return res.status(403).json({ 
           message: 'Sem permissão para ver compartilhamentos desta nota' 
         });
       }
     }
 
-    // Obter usuários compartilhados
+    // Obter usuários compartilhados com informações de permissões
     console.log('=== DEBUG SHARED-USERS ===');
     console.log('noteId:', noteId, 'userId:', userId);
     console.log('isOwner:', isOwner);
     
-    const sharedUsers = await sharingService.getNoteSharedUsers(noteId);
-    console.log('sharedUsers retornados:', sharedUsers);
-    console.log('Quantidade de usuários:', sharedUsers?.length || 0);
+    const sharedUsersWithPermissions = await sharingService.getNoteSharedUsersWithPermissions(noteId, userId);
+    console.log('sharedUsersWithPermissions retornados:', sharedUsersWithPermissions);
+    console.log('Quantidade de usuários:', sharedUsersWithPermissions?.length || 0);
 
     // Retornar lista vazia se não há compartilhamentos
-    res.status(200).json(sharedUsers || []);
+    res.status(200).json(sharedUsersWithPermissions || []);
 
   } catch (error) {
     console.error('Erro ao obter usuários compartilhados:', error);
