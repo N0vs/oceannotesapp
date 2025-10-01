@@ -16,6 +16,7 @@ const ShareNoteModal = ({
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sharedUsers, setSharedUsers] = useState([]);
+  const [currentUserPermission, setCurrentUserPermission] = useState(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -40,6 +41,10 @@ const ShareNoteModal = ({
       if (response.ok) {
         const data = await response.json();
         setSharedUsers(data || []);
+        
+        // Detectar permissão do usuário atual
+        const currentUser = data.find(user => user.isCurrentUser);
+        setCurrentUserPermission(currentUser ? currentUser.TipoPermissao : null);
       }
     } catch (err) {
       console.error('Erro ao carregar usuários compartilhados:', err);
@@ -156,7 +161,8 @@ const ShareNoteModal = ({
     const labels = {
       'visualizar': 'Visualizar',
       'editar': 'Editar',
-      'admin': 'Administrador'
+      'admin': 'Administrador',
+      'owner': 'Proprietário'
     };
     return labels[perm] || perm;
   };
@@ -165,9 +171,30 @@ const ShareNoteModal = ({
     const colors = {
       'visualizar': '#4CAF50',
       'editar': '#FF9800',
-      'admin': '#F44336'
+      'admin': '#F44336',
+      'owner': '#9C27B0'
     };
     return colors[perm] || '#757575';
+  };
+
+  const getAvailablePermissions = (user, currentUserPermission) => {
+    const permissions = [
+      { value: 'visualizar', label: 'Visualizar' },
+      { value: 'editar', label: 'Editar' }
+    ];
+
+    // Apenas proprietários e admins podem ver opções de modificação
+    if (user.canEdit && (currentUserPermission === 'owner' || currentUserPermission === 'admin')) {
+      // Se o usuário atual é proprietário, pode definir qualquer permissão (incluindo admin)
+      // Se é admin, pode definir até editor (não pode promover para admin)
+      if (currentUserPermission === 'owner') {
+        permissions.push({ value: 'admin', label: 'Admin' });
+      } else if (currentUserPermission === 'admin' && user.TipoPermissao !== 'admin') {
+        permissions.push({ value: 'admin', label: 'Admin' });
+      }
+    }
+
+    return permissions;
   };
 
   if (!isOpen) return null;
@@ -202,7 +229,9 @@ const ShareNoteModal = ({
           </div>
         )}
 
-        <form onSubmit={handleShare} className="mb-6">
+        {/* Apenas proprietários, admins e editores podem compartilhar */}
+        {currentUserPermission && ['owner', 'admin', 'editar'].includes(currentUserPermission) && (
+          <form onSubmit={handleShare} className="mb-6">
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email do usuário:
@@ -244,6 +273,7 @@ const ShareNoteModal = ({
             {isLoading ? 'Compartilhando...' : 'Compartilhar'}
           </button>
         </form>
+        )}
 
         <div>
           <h4 className="font-semibold text-gray-800 mb-3">Usuários com acesso:</h4>
@@ -255,33 +285,61 @@ const ShareNoteModal = ({
                 <div key={user.Id} className="border border-gray-200 rounded-lg p-3">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{user.Nome}</div>
-                      <div className="text-sm text-gray-600">{user.Email}</div>
-                      <div className="text-xs text-gray-500">
-                        Compartilhado em: {new Date(user.DataCompartilhamento).toLocaleDateString()}
+                      <div className="font-medium text-gray-900">
+                        {user.Nome}
+                        {user.isCurrentUser && (
+                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            Eu
+                          </span>
+                        )}
                       </div>
+                      <div className="text-sm text-gray-600">{user.Email}</div>
+                      {user.DataCompartilhamento && (
+                        <div className="text-xs text-gray-500">
+                          Compartilhado em: {new Date(user.DataCompartilhamento).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-2 ml-4">
-                      <select
-                        value={user.TipoPermissao}
-                        onChange={(e) => handlePermissionChange(user.Id, e.target.value)}
-                        disabled={isLoading}
-                        className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      >
-                        <option value="visualizar">Visualizar</option>
-                        <option value="editar">Editar</option>
-                        <option value="admin">Admin</option>
-                      </select>
+                      {user.canEdit ? (
+                        <select
+                          value={user.TipoPermissao}
+                          onChange={(e) => handlePermissionChange(user.Id, e.target.value)}
+                          disabled={isLoading}
+                          className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          {getAvailablePermissions(user, currentUserPermission).map(perm => (
+                            <option key={perm.value} value={perm.value}>
+                              {perm.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span 
+                          className="text-sm px-2 py-1 rounded"
+                          style={{ 
+                            backgroundColor: getPermissionColor(user.TipoPermissao) + '20',
+                            color: getPermissionColor(user.TipoPermissao),
+                            border: `1px solid ${getPermissionColor(user.TipoPermissao)}40`
+                          }}
+                        >
+                          {getPermissionLabel(user.TipoPermissao)}
+                        </span>
+                      )}
                       
-                      <button
-                        onClick={() => handleUnshare(user.Id)}
-                        disabled={isLoading}
-                        title="Remover acesso"
-                        className="text-red-500 hover:text-red-700 p-1"
-                      >
-                        🗑️
-                      </button>
+                      {user.canRemove ? (
+                        <button
+                          onClick={() => handleUnshare(user.Id)}
+                          disabled={isLoading}
+                          title="Remover acesso"
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          🗑️
+                        </button>
+                      ) : (
+                        <span className="w-6 h-6"></span> // Espaço vazio para manter alinhamento
+                      )}
                     </div>
                   </div>
                 </div>
