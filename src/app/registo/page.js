@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { validateRegisterForm } from '../../utils/validation';
+import GoogleSignIn from '../../components/GoogleSignIn';
 
 export default function RegistoPage() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [success, setSuccess] = useState(null);
   const { loading, error, setError, register, navigateToLogin } = useAuth();
 
@@ -17,7 +19,7 @@ export default function RegistoPage() {
     setSuccess(null);
 
     // Validação usando funções separadas (SRP)
-    const validation = validateRegisterForm(nome, email, password);
+    const validation = validateRegisterForm(nome, email, password, confirmPassword);
     if (!validation.isValid) {
       setError(validation.error);
       return;
@@ -59,14 +61,30 @@ export default function RegistoPage() {
               className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
             />
           </div>
-          <div className="mb-6">
-            <label htmlFor="password" className="block mb-2 text-sm font-medium">Senha</label>
+          <div className="mb-4">
+            <label htmlFor="password" className="block mb-2 text-sm font-medium">
+              Senha <span className="text-gray-400 text-xs">(mínimo 8 caracteres)</span>
+            </label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
+              minLength="8"
+              required
+            />
+          </div>
+          <div className="mb-6">
+            <label htmlFor="confirmPassword" className="block mb-2 text-sm font-medium">Confirmar Senha</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md focus:ring-cyan-500 focus:border-cyan-500"
+              minLength="8"
+              required
             />
           </div>
           <button 
@@ -79,6 +97,23 @@ export default function RegistoPage() {
           {error && <p className="text-red-500 text-center mt-4">{error}</p>}
           {success && <p className="text-green-500 text-center mt-4">{success}</p>}
         </form>
+
+        {/* Google Sign-In */}
+        <GoogleSignIn 
+          onSuccess={(data) => {
+            console.log('Registro Google concluído:', data);
+            if (data.isNewUser) {
+              setSuccess('Conta criada com Google! Redirecionando...');
+            }
+            setTimeout(() => {
+              window.location.href = '/dashboard';
+            }, 1500);
+          }}
+          onError={(error) => {
+            setError(error);
+          }}
+          buttonText="Criar conta com Google"
+        />
       </div>
     </div>
   );
