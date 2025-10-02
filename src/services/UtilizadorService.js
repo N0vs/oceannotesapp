@@ -6,6 +6,11 @@ class UtilizadorService {
   async create(utilizadorData) {
     const { Nome, Password, Email } = utilizadorData;
 
+    // Validar senha (mínimo 8 caracteres)
+    if (!Password || Password.length < 8) {
+      throw new Error('A senha deve ter pelo menos 8 caracteres.');
+    }
+
     // Verificar se o e-mail já existe
     const existingUser = await UtilizadorRepository.findByEmail(Email);
     if (existingUser) {
@@ -24,6 +29,40 @@ class UtilizadorService {
     });
 
     return novoUtilizador;
+  }
+
+  /**
+   * Criar usuário via Google OAuth
+   */
+  async createGoogleUser(userData) {
+    const { Nome, Email, GoogleId, Avatar } = userData;
+
+    // Verificar se o e-mail já existe
+    const existingUser = await UtilizadorRepository.findByEmail(Email);
+    if (existingUser) {
+      // Se já existe, apenas adicionar GoogleId se não tiver
+      if (!existingUser.GoogleId) {
+        await UtilizadorRepository.updateGoogleId(existingUser.Id || existingUser.id, GoogleId, Avatar);
+      }
+      return existingUser;
+    }
+
+    // Criar novo usuário Google (sem senha)
+    const novoUtilizador = await UtilizadorRepository.createGoogleUser({
+      Nome,
+      Email,
+      GoogleId,
+      Avatar
+    });
+
+    return novoUtilizador;
+  }
+
+  /**
+   * Buscar usuário por email (usado pelo Google OAuth)
+   */
+  async findByEmail(email) {
+    return await UtilizadorRepository.findByEmail(email);
   }
 
   async login(email, password) {

@@ -52,7 +52,7 @@ class NotaService {
     try {
       if (topicos && topicos.length > 0) {
         const notaId = novaNota.id || novaNota.ID;
-        await NotaTopicoRepository.associateTopicosToNota(notaId, topicos);
+        await NotaTopicoRepository.associateTopicosToNota(notaId, topicos, utilizadorId);
         console.log(`Associando tópicos ${topicos} à nota ${notaId}`);
       }
     } catch (error) {
@@ -93,7 +93,7 @@ class NotaService {
     // Buscar tópicos para cada nota
     try {
       for (let nota of notas) {
-        nota.topicos = await NotaTopicoRepository.getTopicosByNotaId(nota.id);
+        nota.topicos = await NotaTopicoRepository.getTopicosByNotaId(nota.id, utilizadorId);
         console.log(`Tópicos para nota ${nota.id}:`, nota.topicos);
       }
     } catch (error) {
@@ -119,7 +119,7 @@ class NotaService {
     // Atualizar associações de tópicos
     try {
       if (topicos !== undefined) {
-        await NotaTopicoRepository.associateTopicosToNota(id, topicos);
+        await NotaTopicoRepository.associateTopicosToNota(id, topicos, utilizadorId);
         console.log(`Atualizando tópicos da nota ${id}:`, topicos);
       }
     } catch (error) {
@@ -140,7 +140,7 @@ class NotaService {
     // Atualizar associações de tópicos
     try {
       if (topicos !== undefined) {
-        await NotaTopicoRepository.associateTopicosToNota(id, topicos);
+        await NotaTopicoRepository.associateTopicosToNota(id, topicos, utilizadorId);
         console.log(`Atualizando tópicos da nota ${id}:`, topicos);
       }
     } catch (error) {
