@@ -10,7 +10,6 @@ export async function connectToDatabase() {
       connection.release();
       return pool;
     } catch (error) {
-      console.log('Pool existente com problema, recriando...');
       await closeConnection();
     }
   }
@@ -22,18 +21,15 @@ export async function connectToDatabase() {
       password: process.env.DB_PASSWORD || '',
       database: process.env.DB_NAME || 'oceannotes',
       charset: 'utf8mb4',
-      connectionLimit: 5, // Reduzido para 5
-      acquireTimeout: 30000, // Reduzido para 30s
-      timeout: 30000,
-      reconnect: true,
-      idleTimeout: 300000, // 5 minutos
-      maxIdle: 2 // Máximo de 2 conexões idle
+      connectionLimit: 10,
+      queueLimit: 0,
+      idleTimeout: 300000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0
     });
 
-    console.log('Pool de conexões com banco de dados criado');
     return pool;
   } catch (error) {
-    console.error('Erro ao criar pool de conexões:', error);
     throw error;
   }
 }
@@ -42,7 +38,6 @@ export async function closeConnection() {
   if (pool) {
     await pool.end();
     pool = null;
-    console.log('Pool de conexões fechado');
   }
 }
 
@@ -56,12 +51,9 @@ export async function executeQuery(query, params = []) {
     const [results] = await connection.execute(query, params);
     return results;
   } catch (error) {
-    console.error('Erro ao executar query:', error);
-    
     // Se for erro de conexão, tentar recriar o pool
     if (error.code === 'PROTOCOL_CONNECTION_LOST' || 
         error.code === 'ER_TOO_MANY_USER_CONNECTIONS') {
-      console.log('Recriando pool de conexões...');
       await closeConnection();
       const newPool = await connectToDatabase();
       connection = await newPool.getConnection();
