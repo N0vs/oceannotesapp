@@ -448,10 +448,8 @@ async getSharedNotes(utilizadorId) {
         throw new Error('Admins não podem alterar permissões de outros administradores ou proprietário');
       }
 
-      // Admin não pode promover alguém para admin
-      if (novaPermissao === 'admin') {
-        throw new Error('Apenas o proprietário pode conceder permissões de administrador');
-      }
+      // Admins agora podem promover outros para admin (conforme nova regra)
+      // Removida restrição - admins podem conceder permissões de administrador
     }
 
     const [result] = await this.db.query(
