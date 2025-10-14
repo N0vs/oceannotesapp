@@ -1,5 +1,8 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
+import { useTranslation } from '../hooks/useTranslation';
 
 /**
  * Modal simples para compartilhar notas
@@ -10,6 +13,7 @@ const ShareNoteModal = ({
   noteId, 
   noteTitle
 }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [permission, setPermission] = useState('visualizar');
   const [error, setError] = useState('');
@@ -28,6 +32,14 @@ const ShareNoteModal = ({
       loadSharedUsers();
     }
   }, [isOpen, noteId]);
+
+  // Garantir que a permissão padrão seja válida quando as permissões do usuário mudam
+  useEffect(() => {
+    if (currentUserPermission && permission === 'admin' && 
+        currentUserPermission !== 'owner' && currentUserPermission !== 'admin') {
+      setPermission('visualizar'); // Reset para permissão segura
+    }
+  }, [currentUserPermission, permission]);
 
   const loadSharedUsers = async () => {
     try {
@@ -57,14 +69,20 @@ const ShareNoteModal = ({
     setSuccess('');
 
     if (!email.trim()) {
-      setError('Email é obrigatório');
+      setError(t('errors.emailRequired'));
       return;
     }
 
     // Validação básica de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      setError('Por favor, insira um email válido');
+      setError(t('errors.invalidEmail'));
+      return;
+    }
+
+    // Validar se a permissão selecionada é válida para o usuário atual
+    if (permission === 'admin' && currentUserPermission !== 'owner' && currentUserPermission !== 'admin') {
+      setError(t('errors.noPermissionToCreateAdmin'));
       return;
     }
 
@@ -159,10 +177,10 @@ const ShareNoteModal = ({
 
   const getPermissionLabel = (perm) => {
     const labels = {
-      'visualizar': 'Visualizar',
-      'editar': 'Editar',
-      'admin': 'Administrador',
-      'owner': 'Proprietário'
+      'visualizar': t('sharing.permissions.visualizar'),
+      'editar': t('sharing.permissions.editar'),
+      'admin': t('sharing.permissions.admin'),
+      'owner': t('sharing.permissions.owner')
     };
     return labels[perm] || perm;
   };
@@ -179,19 +197,16 @@ const ShareNoteModal = ({
 
   const getAvailablePermissions = (user, currentUserPermission) => {
     const permissions = [
-      { value: 'visualizar', label: 'Visualizar' },
-      { value: 'editar', label: 'Editar' }
+      { value: 'visualizar', label: t('sharing.permissions.visualizar') },
+      { value: 'editar', label: t('sharing.permissions.editar') }
     ];
 
-    // Apenas proprietários e admins podem ver opções de modificação
+    // Regras de permissões:
+    // - Proprietários (owner): podem definir qualquer permissão (incluindo admin)
+    // - Administradores (admin): podem promover outros para admin, editar ou visualizar
+    // - Editores (editar): podem apenas definir visualizar ou editar
     if (user.canEdit && (currentUserPermission === 'owner' || currentUserPermission === 'admin')) {
-      // Se o usuário atual é proprietário, pode definir qualquer permissão (incluindo admin)
-      // Se é admin, pode definir até editor (não pode promover para admin)
-      if (currentUserPermission === 'owner') {
-        permissions.push({ value: 'admin', label: 'Admin' });
-      } else if (currentUserPermission === 'admin' && user.TipoPermissao !== 'admin') {
-        permissions.push({ value: 'admin', label: 'Admin' });
-      }
+      permissions.push({ value: 'admin', label: t('sharing.permissions.admin') });
     }
 
     return permissions;
@@ -200,103 +215,154 @@ const ShareNoteModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Compartilhar Nota</h2>
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-100">{t('sharing.shareNote')}</h2>
+            <p className="text-sm text-gray-400 mt-1">{t('sharing.manageAccess')}</p>
+          </div>
           <button 
             onClick={onClose}
             disabled={isLoading}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-gray-400 hover:text-gray-200 hover:bg-gray-700 p-2 rounded-lg transition-colors"
           >
-            ×
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        <div className="mb-4">
-          <h3 className="font-semibold text-gray-800">{noteTitle}</h3>
+        <div className="mb-6 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <h3 className="font-medium text-gray-200 truncate">{noteTitle}</h3>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+          <div className="bg-red-900/30 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-4 flex items-center space-x-2">
+            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {success}
+          <div className="bg-green-900/30 border border-green-500/50 text-green-300 px-4 py-3 rounded-lg mb-4 flex items-center space-x-2">
+            <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span>{success}</span>
           </div>
         )}
 
-        {/* Apenas proprietários, admins e editores podem compartilhar */}
+        {/* Proprietários, administradores e editores podem compartilhar */}
         {currentUserPermission && ['owner', 'admin', 'editar'].includes(currentUserPermission) && (
-          <form onSubmit={handleShare} className="mb-6">
-          <div className="mb-4">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email do usuário:
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="usuario@exemplo.com"
-              disabled={isLoading}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          <form onSubmit={handleShare} className="mb-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600">
+            <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+              </svg>
+              <span>{t('sharing.addUser')}</span>
+            </h4>
 
-          <div className="mb-4">
-            <label htmlFor="permission" className="block text-sm font-medium text-gray-700 mb-2">
-              Permissão:
-            </label>
-            <select
-              id="permission"
-              value={permission}
-              onChange={(e) => setPermission(e.target.value)}
+            <div className="mb-4">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                {t('sharing.emailAddress')}
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('sharing.emailPlaceholder')}
+                disabled={isLoading}
+                required
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 placeholder-gray-500"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="permission" className="block text-sm font-medium text-gray-300 mb-2">
+                {t('sharing.permissionLevel')}
+              </label>
+              <select
+                id="permission"
+                value={permission}
+                onChange={(e) => setPermission(e.target.value)}
+                disabled={isLoading}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-gray-200 rounded-lg focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              >
+                <option value="visualizar">{t('sharing.viewOnly')}</option>
+                <option value="editar">{t('sharing.edit')}</option>
+                {/* Administradores e proprietários podem criar outros admins */}
+                {(currentUserPermission === 'owner' || currentUserPermission === 'admin') && (
+                  <option value="admin">{t('sharing.admin')}</option>
+                )}
+              </select>
+            </div>
+
+            <button 
+              type="submit" 
               disabled={isLoading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-purple-600 text-white py-2.5 px-4 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
             >
-              <option value="visualizar">Visualizar</option>
-              <option value="editar">Editar</option>
-              <option value="admin">Administrador</option>
-            </select>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={isLoading}
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Compartilhando...' : 'Compartilhar'}
-          </button>
-        </form>
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>{t('sharing.sharing')}</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                  </svg>
+                  <span>{t('sharing.sendInvite')}</span>
+                </>
+              )}
+            </button>
+          </form>
         )}
 
         <div>
-          <h4 className="font-semibold text-gray-800 mb-3">Usuários com acesso:</h4>
+          <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center space-x-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span>{t('sharing.peopleWithAccess')}</span>
+            <span className="text-xs text-gray-500">({sharedUsers.length})</span>
+          </h4>
           {sharedUsers.length === 0 ? (
-            <p className="text-gray-500 text-sm">Nenhum usuário com acesso</p>
+            <div className="text-center py-8 text-gray-500">
+              <svg className="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="text-sm">{t('sharing.noAccess')}</p>
+            </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {sharedUsers.map((user) => (
-                <div key={user.Id} className="border border-gray-200 rounded-lg p-3">
+                <div key={user.Id} className="bg-gray-700/30 border border-gray-600 rounded-lg p-3 hover:bg-gray-700/50 transition-colors">
                   <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">
-                        {user.Nome}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <div className="font-medium text-gray-200">
+                          {user.Nome}
+                        </div>
                         {user.isCurrentUser && (
-                          <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                            Eu
+                          <span className="text-xs bg-purple-600/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
+                            {t('sharing.you')}
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600">{user.Email}</div>
+                      <div className="text-sm text-gray-400 truncate">{user.Email}</div>
                       {user.DataCompartilhamento && (
-                        <div className="text-xs text-gray-500">
-                          Compartilhado em: {new Date(user.DataCompartilhamento).toLocaleDateString()}
+                        <div className="text-xs text-gray-500 mt-1">
+                          {t('messages.shared')} {new Date(user.DataCompartilhamento).toLocaleDateString()}
                         </div>
                       )}
                     </div>
@@ -307,7 +373,7 @@ const ShareNoteModal = ({
                           value={user.TipoPermissao}
                           onChange={(e) => handlePermissionChange(user.Id, e.target.value)}
                           disabled={isLoading}
-                          className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="text-sm px-2 py-1 bg-gray-600 border border-gray-500 text-gray-200 rounded focus:outline-none focus:border-purple-500"
                         >
                           {getAvailablePermissions(user, currentUserPermission).map(perm => (
                             <option key={perm.value} value={perm.value}>
@@ -317,7 +383,7 @@ const ShareNoteModal = ({
                         </select>
                       ) : (
                         <span 
-                          className="text-sm px-2 py-1 rounded"
+                          className="text-xs px-2 py-1 rounded-full font-medium"
                           style={{ 
                             backgroundColor: getPermissionColor(user.TipoPermissao) + '20',
                             color: getPermissionColor(user.TipoPermissao),
@@ -332,13 +398,15 @@ const ShareNoteModal = ({
                         <button
                           onClick={() => handleUnshare(user.Id)}
                           disabled={isLoading}
-                          title="Remover acesso"
-                          className="text-red-500 hover:text-red-700 p-1"
+                          title={t('tooltips.removeAccess')}
+                          className="text-gray-400 hover:text-red-400 hover:bg-red-900/20 p-1.5 rounded-lg transition-colors"
                         >
-                          🗑️
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                         </button>
                       ) : (
-                        <span className="w-6 h-6"></span> // Espaço vazio para manter alinhamento
+                        <div className="w-8 h-8"></div>
                       )}
                     </div>
                   </div>
@@ -348,13 +416,13 @@ const ShareNoteModal = ({
           )}
         </div>
 
-        <div className="mt-6 pt-4 border-t">
+        <div className="mt-6 pt-4 border-t border-gray-600">
           <button 
             onClick={onClose} 
             disabled={isLoading}
-            className="w-full bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400 disabled:opacity-50"
+            className="w-full bg-gray-700 text-gray-200 py-2.5 px-4 rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors border border-gray-600"
           >
-            Fechar
+            {t('sharing.close')}
           </button>
         </div>
       </div>
