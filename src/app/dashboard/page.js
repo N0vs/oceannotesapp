@@ -1,607 +1,476 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import NotesFilters from '../../components/NotesFilters';
-import Link from 'next/link';
 import Cookies from 'js-cookie';
+import { useTranslation } from '../../hooks/useTranslation';
+import ObsidianLayout from '../../components/ObsidianLayout';
+import ObsidianSidebar from '../../components/ObsidianSidebar';
+import ObsidianEditor from '../../components/ObsidianEditor';
+import ObsidianGraph from '../../components/ObsidianGraph';
 import ShareNoteModal from '../../components/ShareNoteModal';
 
-// Componente interno que usa os contextos
-function DashboardContent() {
+function ObsidianDashboard() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [notes, setNotes] = useState([]);
-  const [newNoteTitle, setNewNoteTitle] = useState('');
-  const [newNoteContent, setNewNoteContent] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingNote, setEditingNote] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [allNotes, setAllNotes] = useState([]);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [availableTopics, setAvailableTopics] = useState([]);
-  const [selectedTopics, setSelectedTopics] = useState([]);
-  const [newTopicName, setNewTopicName] = useState('');
-  const [newTopicColor, setNewTopicColor] = useState('#3B82F6');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showShareModal, setShowShareModal] = useState(null);
-  const [activeFilters, setActiveFilters] = useState(null);
+  const [showGraph, setShowGraph] = useState(false);
 
-  // Função callback para lidar com mudanças nos filtros
-  const handleFiltersChange = useCallback((filters) => {
-    setActiveFilters(filters);
-    fetchNotes(filters);
-  }, []);
-
-  const fetchNotes = async (filters = null) => {
+  // Fetch notes
+  const fetchNotes = async () => {
     setLoading(true);
     const token = Cookies.get('token');
-    console.log('Token encontrado:', !!token); // Debug
     
     if (!token) {
-      console.log('Sem token, redirecionando para login');
       router.push('/');
       return;
     }
 
     try {
-      let apiUrl = '/api/notas';
-      
-      // Se há filtros ativos, usar endpoint de filtros
-      if (filters && (
-        filters.searchText || 
-        filters.dateType !== 'all' || 
-        filters.selectedTopics.length > 0
-      )) {
-        const params = new URLSearchParams();
-        
-        if (filters.searchText) params.append('searchText', filters.searchText);
-        if (filters.dateType !== 'all') {
-          params.append('dateType', filters.dateType);
-          if (filters.specificDate) params.append('specificDate', filters.specificDate);
-          if (filters.startDate) params.append('startDate', filters.startDate);
-          if (filters.endDate) params.append('endDate', filters.endDate);
-          if (filters.month) params.append('month', filters.month);
-          if (filters.year) params.append('year', filters.year);
-        }
-        if (filters.selectedTopics.length > 0) {
-          filters.selectedTopics.forEach(topicId => {
-            params.append('selectedTopics', topicId);
-          });
-        }
-        
-        apiUrl = `/api/notas/filtered?${params.toString()}`;
-      }
-
-      console.log('Fazendo request para:', apiUrl);
-      const res = await fetch(apiUrl, {
+      const response = await fetch('/api/notas', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+          'Authorization': `Bearer ${token}`
+        }
       });
 
-      console.log('Resposta da API notas:', res.status, res.ok);
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.log('Erro da API:', errorData);
-        throw new Error('Falha ao buscar notas. Faça login novamente.');
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Forçar atualização síncrona usando callback
+        setNotes(() => data);
+        setAllNotes(() => data);
+      } else {
+        throw new Error('Erro ao carregar notas');
       }
-
-      const data = await res.json();
-      console.log('Notas recebidas:', data); // Debug
-      console.log('Primeira nota com tópicos:', data[0]?.topicos); // Debug tópicos
-      setNotes(data);
-    } catch (err) {
-      console.log('Erro no fetchNotes:', err);
-      setError(err.message);
-      Cookies.remove('token');
-      router.push('/');
+    } catch (error) {
+      setError('Erro ao carregar notas: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch topics
   const fetchTopics = async () => {
     const token = Cookies.get('token');
-    console.log('fetchTopics - Token encontrado:', !!token);
-    if (!token) return;
     
     try {
-      console.log('Fazendo request para /api/topicos');
-      const res = await fetch('/api/topicos', {
+      const response = await fetch('/api/topicos', {
         headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+          'Authorization': `Bearer ${token}`
+        }
       });
-      console.log('Resposta da API topicos:', res.status, res.ok);
-      
-      if (res.ok) {
-        const data = await res.json();
-        console.log('Tópicos recebidos:', data);
-        setAvailableTopics(data || []);
-      } else if (res.status === 404) {
-        console.log('Nenhum tópico encontrado (404)');
-        setAvailableTopics([]);
-      } else {
-        console.log('Erro ao buscar tópicos:', res.status);
-        setAvailableTopics([]);
+
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableTopics(data);
       }
-    } catch (err) {
-      console.log('Erro no fetchTopics:', err);
-      setAvailableTopics([]);
+    } catch (error) {
+      console.error('Erro ao carregar tópicos:', error);
     }
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      await fetchNotes();
-      await fetchTopics();
-    };
-    loadData();
+    fetchNotes();
+    fetchTopics();
   }, []);
 
+  // Refresh single note from API
+  const refreshSingleNote = async (noteId) => {
+    const token = Cookies.get('token');
+    
+    try {
+      // Como a API individual não retorna tópicos, vamos buscar todas as notas
+      // e encontrar a específica (que já vem com tópicos)
+      console.log('Fazendo fetch de todas as notas para encontrar a atualizada...');
+      const response = await fetch('/api/notas', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const allNotes = await response.json();
+        const updatedNote = allNotes.find(note => (note.id || note.ID) === noteId);
+        
+        if (updatedNote) {
+          console.log('Nota atualizada encontrada:', updatedNote);
+          console.log('Tags da nota atualizada:', updatedNote.topicos);
+          
+          // Garantir que a nota tem timestamp atualizado para forçar re-render
+          updatedNote.dataAtualizacao = new Date().toISOString();
+          
+          // Atualizar TODAS as notas (já que fizemos fetch de todas)
+          setNotes(allNotes);
+          setAllNotes(allNotes);
+          
+          // Também atualizar tópicos para garantir que as novas tags existem
+          await fetchTopics();
+          
+          // Atualizar a nota selecionada se for a mesma - FORÇAR update
+          if (selectedNote && (selectedNote.id || selectedNote.ID) === (updatedNote.id || updatedNote.ID)) {
+            // Primeiro limpar a nota selecionada, depois definir a nova (forçar re-render)
+            setSelectedNote(null);
+            setTimeout(() => {
+              setSelectedNote(updatedNote);
+            }, 10);
+          }
+          
+          console.log('Estado atualizado com nota:', updatedNote);
+        } else {
+          console.error('Nota não encontrada nas notas retornadas');
+        }
+      } else {
+        console.error('Erro na resposta da API:', response.status);
+      }
+    } catch (error) {
+      console.error('Erro ao recarregar nota:', error);
+    }
+  };
+
+  // Handle create new note
+  const handleCreateNote = () => {
+    setSelectedNote(null);
+    setIsCreatingNote(true);
+    setShowGraph(false);
+  };
+
+  // Handle select note
+  const handleSelectNote = (note) => {
+    setSelectedNote(note);
+    setIsCreatingNote(false);
+    setShowGraph(false);
+  };
+
+  // Handle save note
+  const handleSaveNote = async (noteData) => {
+    console.log('=== INÍCIO SAVE ===');
+    console.log('Dados sendo salvos:', noteData);
+    console.log('IDs das tags:', noteData.topicos);
+    
+    const token = Cookies.get('token');
+    
+    try {
+      let response;
+      
+      if (isCreatingNote) {
+        // Create new note
+        response = await fetch('/api/notas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(noteData)
+        });
+      } else if (selectedNote) {
+        // Update existing note
+        response = await fetch(`/api/notas/${selectedNote.id || selectedNote.ID}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(noteData)
+        });
+      }
+
+      if (response && response.ok) {
+        try {
+          const responseText = await response.text();
+          
+          let savedNote;
+          if (responseText) {
+            savedNote = JSON.parse(responseText);
+          } else {
+            await fetchNotes();
+            return;
+          }
+          
+          // Verificar se a API retornou apenas mensagem de sucesso
+          if (savedNote.message && !savedNote.nota && !savedNote.id && !savedNote.ID) {
+            // Recarregar apenas a nota específica
+            if (!isCreatingNote && selectedNote) {
+              console.log('Refreshing single note:', selectedNote.id || selectedNote.ID);
+              await refreshSingleNote(selectedNote.id || selectedNote.ID);
+              console.log('=== FIM SAVE (refresh note) ===');
+            } else {
+              // Para nova nota, refazer fetch das notas
+              await fetchNotes();
+              setIsCreatingNote(false);
+              console.log('=== FIM SAVE (new note) ===');
+            }
+            return;
+          }
+          
+          // A API retornou dados da nota, vamos normalizar
+          const noteData = savedNote.nota || savedNote;
+          
+          if (isCreatingNote) {
+            setNotes(prev => [noteData, ...prev]);
+            setAllNotes(prev => [noteData, ...prev]);
+            setSelectedNote(noteData);
+            setIsCreatingNote(false);
+          } else {
+            setNotes(prev => prev.map(note => 
+              (note.id || note.ID) === (noteData.id || noteData.ID) ? noteData : note
+            ));
+            setAllNotes(prev => prev.map(note => 
+              (note.id || note.ID) === (noteData.id || noteData.ID) ? noteData : note
+            ));
+            setSelectedNote(noteData);
+          }
+        } catch (parseError) {
+          // Se há erro no parse, refazer fetch das notas
+          await fetchNotes();
+        }
+      } else {
+        throw new Error('Erro ao salvar nota');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar nota:', error);
+      setError('Erro ao salvar nota: ' + error.message);
+    }
+  };
+
+  // Handle close editor
+  const handleCloseEditor = () => {
+    setSelectedNote(null);
+    setIsCreatingNote(false);
+  };
+
+  // Handle create topic
+  const handleCreateTopic = async (topicData) => {
+    const token = Cookies.get('token');
+    
+    try {
+      const response = await fetch('/api/topicos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          nome: topicData.nome,
+          cor: topicData.cor
+        })
+      });
+
+      if (response.ok) {
+        const newTopic = await response.json();
+        setAvailableTopics(prev => [...prev, newTopic]);
+        return newTopic;
+      }
+    } catch (error) {
+      console.error('Erro ao criar tópico:', error);
+    }
+  };
+
+  // Handle share note
+  const handleShareNote = (note) => {
+    setShowShareModal(note);
+  };
+
+  // Handle delete note
+  const handleDeleteNote = async (note) => {
+    const token = Cookies.get('token');
+    
+    try {
+      const response = await fetch(`/api/notas/${note.id || note.ID}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        // Remover nota de ambas as listas
+        setNotes(prev => prev.filter(n => (n.id || n.ID) !== (note.id || note.ID)));
+        setAllNotes(prev => prev.filter(n => (n.id || n.ID) !== (note.id || note.ID)));
+        
+        // Se era a nota selecionada, limpar seleção
+        if (selectedNote && (selectedNote.id || selectedNote.ID) === (note.id || note.ID)) {
+          setSelectedNote(null);
+          setIsCreatingNote(false);
+        }
+      } else {
+        throw new Error('Erro ao deletar nota');
+      }
+    } catch (error) {
+      console.error('Erro ao deletar nota:', error);
+      setError('Erro ao deletar nota: ' + error.message);
+    }
+  };
+
+  // Handle logout
   const handleLogout = () => {
     Cookies.remove('token');
     router.push('/');
   };
 
-  const handleCreateNote = async (e) => {
-    e.preventDefault();
-    const token = Cookies.get('token');
-    setError('');
+  // Handle show graph
+  const handleShowGraph = () => {
+    setShowGraph(true);
+    setSelectedNote(null);
+    setIsCreatingNote(false);
+  };
 
-    try {
-      const res = await fetch('/api/notas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          titulo: newNoteTitle, 
-          conteudo: newNoteContent,
-          topicos: selectedTopics.map(t => t.ID || t.id)
-        }),
+  // Handle select note from graph or sidebar
+  const handleSelectNoteFromGraph = (note) => {
+    setSelectedNote(note);
+    setShowGraph(false);
+    setIsCreatingNote(false);
+  };
+
+  // Handle filters change
+  const handleFiltersChange = (filters) => {
+    // Se não há filtros ativos, mostrar todas as notas
+    if (!filters.searchText && filters.selectedTopics.length === 0 && filters.dateFilter === 'all') {
+      setNotes(allNotes);
+      return;
+    }
+
+    // Aplicar filtros usando as notas originais
+    let filteredNotes = [...allNotes];
+
+    // Filtro de texto
+    if (filters.searchText) {
+      const searchLower = filters.searchText.toLowerCase();
+      filteredNotes = filteredNotes.filter(note => 
+        note.titulo.toLowerCase().includes(searchLower) ||
+        (note.conteudo && note.conteudo.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Filtro por tópicos
+    if (filters.selectedTopics.length > 0) {
+      filteredNotes = filteredNotes.filter(note =>
+        note.topicos && note.topicos.some(topic => 
+          filters.selectedTopics.includes(topic.ID)
+        )
+      );
+    }
+
+    // Filtro por data
+    if (filters.dateFilter !== 'all') {
+      const now = new Date();
+      filteredNotes = filteredNotes.filter(note => {
+        const noteDate = new Date(note.dataAtualizacao);
+        
+        switch (filters.dateFilter) {
+          case 'today':
+            return noteDate.toDateString() === now.toDateString();
+          case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return noteDate >= weekAgo;
+          case 'month':
+            return noteDate.getMonth() === now.getMonth() && noteDate.getFullYear() === now.getFullYear();
+          default:
+            return true;
+        }
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Falha ao criar nota');
-      }
-
-      setNewNoteTitle('');
-      setNewNoteContent('');
-      setSelectedTopics([]);
-      setShowCreateForm(false);
-      setEditingNote(null);
-      fetchNotes();
-    } catch (err) {
-      setError(err.message);
     }
+
+    setNotes(filteredNotes);
   };
 
-  const handleEditNote = (note) => {
-    setEditingNote(note);
-    setNewNoteTitle(note.titulo);
-    setNewNoteContent(note.conteudo);
-    setSelectedTopics(note.topicos || []);
-    setShowCreateForm(true);
-  };
+  // Render sidebar
+  const sidebar = (
+    <ObsidianSidebar
+      notes={notes}
+      onCreateNote={handleCreateNote}
+      onSelectNote={handleSelectNote}
+      selectedNoteId={selectedNote?.id || selectedNote?.ID}
+      onLogout={handleLogout}
+      availableTopics={availableTopics}
+      onFiltersChange={handleFiltersChange}
+      onShowGraph={handleShowGraph}
+      showingGraph={showGraph}
+    />
+  );
 
-  const openCreateForm = () => {
-    setEditingNote(null);
-    setNewNoteTitle('');
-    setNewNoteContent('');
-    setSelectedTopics([]);
-    setShowCreateForm(true);
-  };
+  // Render main content
+  const mainContent = showGraph ? (
+    <ObsidianGraph
+      notes={allNotes}
+      onSelectNote={handleSelectNoteFromGraph}
+      selectedNote={selectedNote}
+    />
+  ) : (
+    <ObsidianEditor
+      note={selectedNote}
+      onSave={handleSaveNote}
+      onClose={handleCloseEditor}
+      isCreating={isCreatingNote}
+      availableTopics={availableTopics}
+      onCreateTopic={handleCreateTopic}
+      onShare={handleShareNote}
+      onDelete={handleDeleteNote}
+    />
+  );
 
-  const handleCreateTopic = async () => {
-    if (!newTopicName.trim()) return;
-    
-    const token = Cookies.get('token');
-    try {
-      const res = await fetch('/api/topicos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ nome: newTopicName, cor: newTopicColor, utilizadorId: null }),
-      });
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">{t('messages.loadingNotes')}</p>
+        </div>
+      </div>
+    );
+  }
 
-      if (res.ok) {
-        const newTopic = await res.json();
-        setAvailableTopics([...availableTopics, newTopic]);
-        setSelectedTopics([...selectedTopics, newTopic]);
-        setNewTopicName('');
-        setNewTopicColor('#3B82F6');
-      }
-    } catch (err) {
-      console.log('Erro ao criar tópico:', err);
-    }
-  };
-
-  const toggleTopic = (topic) => {
-    const isSelected = selectedTopics.some(t => (t.ID || t.id) === (topic.ID || topic.id));
-    if (isSelected) {
-      setSelectedTopics(selectedTopics.filter(t => (t.ID || t.id) !== (topic.ID || topic.id)));
-    } else {
-      setSelectedTopics([...selectedTopics, topic]);
-    }
-  };
-
-  const handleUpdateNote = async (e) => {
-    e.preventDefault();
-    const token = Cookies.get('token');
-    setError('');
-
-    try {
-      const noteId = editingNote.ID || editingNote.id;
-
-      const res = await fetch(`/api/notas/${noteId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          titulo: newNoteTitle, 
-          conteudo: newNoteContent,
-          topicos: selectedTopics.map(t => t.ID || t.id)
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Falha ao atualizar nota');
-      }
-
-      setNewNoteTitle('');
-      setNewNoteContent('');
-      setSelectedTopics([]);
-      setShowCreateForm(false);
-      setEditingNote(null);
-      fetchNotes();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleDeleteNote = async (noteId) => {
-    const token = Cookies.get('token');
-    setError('');
-
-    try {
-      const res = await fetch(`/api/notas/${noteId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Falha ao excluir nota');
-      }
-
-      setShowDeleteConfirm(null);
-      fetchNotes();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  // Show error state
+  if (error) {
+    return (
+      <div className="h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 mb-4">
+            <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-lg">{error}</p>
+          </div>
+          <button
+            onClick={() => {
+              setError('');
+              fetchNotes();
+            }}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+          >
+            {t('messages.tryAgain')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-gray-900">Minhas Notas</h1>
-          <div className="flex space-x-4">
-            <button
-              onClick={() => router.push('/grafo')}
-              className="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              🔗 Ver Grafo
-            </button>
-            <button
-              onClick={() => {
-                setEditingNote(null);
-                setNewNoteTitle('');
-                setNewNoteContent('');
-                setShowCreateForm(true);
-              }}
-              className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              + Nova Nota
-            </button>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            >
-              Sair
-            </button>
-          </div>
-        </div>
-      </header>
-      <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          {/* Modal para criar nova nota */}
-          {showCreateForm && (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-              <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div className="mt-3">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">{editingNote ? 'Editar Nota' : 'Criar Nova Nota'}</h3>
-                    <button
-                      onClick={() => setShowCreateForm(false)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <form onSubmit={editingNote ? handleUpdateNote : handleCreateNote} className="space-y-4">
-                    <div>
-                      <label htmlFor="noteTitle" className="block text-sm font-medium text-gray-700">Título da Nota</label>
-                      <input
-                        type="text"
-                        id="noteTitle"
-                        value={newNoteTitle}
-                        onChange={(e) => setNewNoteTitle(e.target.value)}
-                        required
-                        className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="noteContent" className="block text-sm font-medium text-gray-700">Conteúdo da Nota (opcional)</label>
-                      <textarea
-                        id="noteContent"
-                        value={newNoteContent}
-                        onChange={(e) => setNewNoteContent(e.target.value)}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        rows="4"
-                        placeholder="Digite o conteúdo da nota (opcional)"
-                      />
-                    </div>
-                    
-                    {/* Seção de Tópicos */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Tópicos</label>
-                      
-                      {/* Criar novo tópico */}
-                      <div className="flex mb-3 gap-2">
-                        <input
-                          type="text"
-                          value={newTopicName}
-                          onChange={(e) => setNewTopicName(e.target.value)}
-                          placeholder="Novo tópico..."
-                          className="flex-1 px-3 py-1 border border-gray-300 rounded-md text-sm"
-                        />
-                        <input
-                          type="color"
-                          value={newTopicColor}
-                          onChange={(e) => setNewTopicColor(e.target.value)}
-                          className="w-10 h-8 border border-gray-300 rounded-md cursor-pointer"
-                          title="Escolher cor"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleCreateTopic}
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm"
-                        >
-                          +
-                        </button>
-                      </div>
-                      
-                      {/* Lista de tópicos disponíveis */}
-                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                        {availableTopics && availableTopics.length > 0 ? (
-                          availableTopics.map((topic) => {
-                            const isSelected = selectedTopics.some(t => (t.ID || t.id) === (topic.ID || topic.id));
-                            return (
-                              <button
-                                key={`topic-${topic.ID || topic.id}`}
-                                type="button"
-                                onClick={() => toggleTopic(topic)}
-                                className={`px-2 py-1 rounded-full text-xs border ${
-                                  isSelected 
-                                    ? 'text-white border-transparent' 
-                                    : 'text-gray-700 border-gray-300 hover:border-gray-400'
-                                }`}
-                                style={{
-                                  backgroundColor: isSelected ? (topic.cor || '#3B82F6') : 'transparent',
-                                  borderColor: !isSelected ? (topic.cor || '#3B82F6') : 'transparent'
-                                }}
-                              >
-                                {topic.nome}
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <p className="text-xs text-gray-500">Nenhum tópico disponível. Crie o primeiro!</p>
-                        )}
-                      </div>
-                      
-                      {/* Tópicos selecionados */}
-                      {selectedTopics.length > 0 && (
-                        <div className="mt-2">
-                          <span className="text-xs text-gray-600">Selecionados: </span>
-                          <span className="text-xs text-blue-600">
-                            {selectedTopics.map(t => t.nome).join(', ')}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowCreateForm(false)}
-                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded"
-                      >
-                        Cancelar
-                      </button>
-                      <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                        {editingNote ? 'Atualizar Nota' : 'Criar Nota'}
-                      </button>
-                    </div>
-                  </form>
-                  {error && <p className="mt-4 text-red-500">{error}</p>}
-                </div>
-              </div>
-            </div>
-          )}
+    <>
+      <ObsidianLayout sidebar={sidebar}>
+        {mainContent}
+      </ObsidianLayout>
 
-          {/* Modal de confirmação para excluir */}
-          {showDeleteConfirm && (
-            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-              <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div className="mt-3 text-center">
-                  <h3 className="text-lg font-medium text-gray-900">Confirmar Exclusão</h3>
-                  <div className="mt-2 px-7 py-3">
-                    <p className="text-sm text-gray-500">
-                      Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.
-                    </p>
-                  </div>
-                  <div className="items-center px-4 py-3">
-                    <button
-                      onClick={() => setShowDeleteConfirm(null)}
-                      className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-gray-600"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      onClick={() => handleDeleteNote(showDeleteConfirm)}
-                      className="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 hover:bg-red-600"
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Componente de Filtros */}
-          <NotesFilters 
-            onFiltersChange={handleFiltersChange}
-            availableTopics={availableTopics}
-          />
-
-          {/* Lista de notas */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            {loading ? (
-              <p className="p-4 text-center text-gray-500">Carregando notas...</p>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {notes && notes.map((note, index) => (
-                  <div 
-                    key={`note-${note.ID || note.id || index}`} 
-                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer relative"
-                    onClick={() => handleEditNote(note)}
-                  >
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowShareModal(note);
-                        }}
-                        className="text-blue-500 hover:text-blue-700 text-sm font-bold"
-                        title="Compartilhar nota"
-                      >
-                        🔗
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowDeleteConfirm(note.ID || note.id);
-                        }}
-                        className="text-red-500 hover:text-red-700 text-lg font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2 pr-6">{note.titulo}</h3>
-                    <p className="text-gray-600 text-sm mb-3 line-clamp-3">{note.conteudo}</p>
-                    
-                    {/* Tópicos da nota */}
-                    {note.topicos && note.topicos.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {note.topicos.map((topico) => (
-                          <span
-                            key={`note-topic-${topico.ID || topico.id}`}
-                            className="px-2 py-1 rounded-full text-xs text-white"
-                            style={{ backgroundColor: topico.cor || '#3B82F6' }}
-                          >
-                            {topico.nome}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {/* Informações de compartilhamento e histórico */}
-                    <div className="space-y-2 mb-3">
-                      {/* Indicador de nota compartilhada */}
-                      {note.isShared && (
-                        <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                          <span className="mr-1">🔗</span>
-                          <span>Compartilhada por {note.sharedBy}</span>
-                          <span className="ml-2 px-1 bg-blue-200 rounded text-blue-800">
-                            {note.permission}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Informações de compartilhamento para notas próprias */}
-                      {note.isOwned && note.sharedCount > 0 && (
-                        <div className="flex items-center text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                          <span className="mr-1">👥</span>
-                          <span>Compartilhada com {note.sharedCount} pessoa{note.sharedCount > 1 ? 's' : ''}</span>
-                        </div>
-                      )}
-                      
-                      {/* Última modificação */}
-                      {note.lastModifiedBy && (
-                        <div className="flex items-center text-xs text-gray-500">
-                          <span className="mr-1">✏️</span>
-                          <span>Última edição por {note.lastModifiedBy}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-center text-xs text-gray-500">
-                      <span>Criada em: {new Date(note.dataCriacao || note.DataCriacao).toLocaleDateString()}</span>
-                      {note.lastModifiedDate && (
-                        <span>Atualizada: {new Date(note.lastModifiedDate).toLocaleDateString()}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {notes && notes.length === 0 && (
-                  <div className="col-span-full text-center py-8">
-                    <p className="text-gray-500">Nenhuma nota encontrada. Crie sua primeira nota!</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Modal de Compartilhamento */}
-          {showShareModal && (
-            <ShareNoteModal
-              isOpen={!!showShareModal}
-              onClose={() => setShowShareModal(null)}
-              noteId={showShareModal.ID || showShareModal.id}
-              noteTitle={showShareModal.titulo}
-            />
-          )}
-
-        </div>
-      </main>
-    </div>
+      {/* Modal de Compartilhamento */}
+      {showShareModal && (
+        <ShareNoteModal
+          isOpen={!!showShareModal}
+          onClose={() => setShowShareModal(null)}
+          noteId={showShareModal.id || showShareModal.ID}
+          noteTitle={showShareModal.titulo}
+        />
+      )}
+    </>
   );
 }
 
-// Componente principal simplificado
 export default function DashboardPage() {
-  return <DashboardContent />;
+  return <ObsidianDashboard />;
 }
