@@ -1,16 +1,19 @@
 # 🌊 OceanNotesApp
 
-Sistema completo de notas com compartilhamento e sincronização em tempo real.
+Sistema completo de notas com compartilhamento colaborativo e interface moderna.
 
 ## 📋 Funcionalidades
 
 - ✅ **Autenticação** - Login/registro seguro com JWT
-- ✅ **Notas** - Criar, editar, excluir notas
+- ✅ **Notas** - Criar, editar, excluir notas com editor rico
 - ✅ **Compartilhamento** - Compartilhar notas com outros usuários
-- ✅ **Permissões** - Controle de acesso (visualizar/editar/admin)
-- ✅ **Tópicos** - Organização por categorias coloridas
-- ✅ **Sincronização** - Atualizações em tempo real via WebSocket
-- ✅ **Dashboard** - Interface moderna e responsiva
+- ✅ **Permissões** - Controle de acesso (visualizar/editar/admin/proprietário)
+- ✅ **Tópicos/Tags** - Organização por categorias coloridas
+- ✅ **Grafo de Conexões** - Visualização de relacionamentos entre notas
+- ✅ **Interface Moderna** - Dashboard responsivo estilo Obsidian
+- ✅ **Internacionalização** - Interface completamente em português
+- ✅ **Uploads de Mídia** - Suporte a imagens nas notas
+- 🔄 **Sincronização Online** - Requer conexão com internet (sem modo offline)
 
 ## 🚀 Instalação e Configuração
 
@@ -47,8 +50,8 @@ DB_NAME=oceannotesapp
 # JWT
 JWT_SECRET=sua_chave_secreta_muito_forte
 
-# WebSocket
-WS_PORT=8080
+# Upload de arquivos (opcional)
+UPLOAD_DIR=public/uploads
 ```
 
 ### 5. Executar o projeto
@@ -60,6 +63,23 @@ npm run dev
 npm run build
 npm start
 ```
+
+## 🔄 Como Funciona a Sincronização
+
+**IMPORTANTE**: Este sistema **não possui sincronização offline** real. Funciona da seguinte forma:
+
+- 📡 **Online First** - Todas as operações requerem conexão com internet
+- 💾 **Salvamento Imediato** - Mudanças são salvas diretamente no servidor
+- 🔄 **Atualizações Automáticas** - Interface atualiza após operações bem-sucedidas
+- 👥 **Colaboração** - Múltiplos usuários podem compartilhar e editar notas
+- ⚠️ **Sem Cache Local** - Não há modo offline ou armazenamento local
+
+### Funcionalidades de "Sincronização":
+- ✅ **Refresh Automático** - Recarrega dados após salvar
+- ✅ **Estados de Loading** - Feedback visual durante operações
+- ✅ **Detecção de Conflitos** - Sistema preparado para conflitos (API implementada)
+- ❌ **WebSocket Real-time** - Não implementado (código existe mas não é usado)
+- ❌ **Modo Offline** - Não suportado
 
 ## 🔧 Estrutura do Projeto
 
