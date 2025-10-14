@@ -1,0 +1,152 @@
+{
+  "common": {
+    "save": "Salvar",
+    "saving": "Salvando...",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "reset": "Resetar",
+    "new": "Nova",
+    "create": "Criar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "show": "Mostrar",
+    "hide": "Ocultar"
+  },
+  "notes": {
+    "title": "Notas",
+    "newNote": "Nova Nota",
+    "untitled": "Sem título",
+    "recentNotes": "Notas Recentes",
+    "allNotes": "Todas as Notas",
+    "searchNotes": "Buscar notas...",
+    "noNotesFound": "Nenhuma nota encontrada",
+    "deleteNote": "Excluir nota",
+    "confirmDelete": "Tem certeza que deseja excluir esta nota?",
+    "confirmDeleteMessage": "Esta ação irá remover permanentemente a nota e todo o seu conteúdo.",
+    "noteDeleted": "Nota excluída com sucesso"
+  },
+  "tags": {
+    "title": "Tags",
+    "newTag": "Nova Tag",
+    "addTag": "Adicionar tag",
+    "searchTags": "Buscar tags...",
+    "noTagsFound": "Nenhuma tag encontrada",
+    "typeToSearch": "Digite para buscar tags...",
+    "selectedTags": "Tags Selecionadas",
+    "availableTags": "Tags Disponíveis",
+    "existingTags": "Tags existentes",
+    "tagName": "Nome da tag",
+    "tagColor": "Cor da tag",
+    "createTag": "Criar Tag"
+  },
+  "filters": {
+    "title": "Filtros",
+    "resetFilters": "Resetar Filtros",
+    "filterByTags": "Filtrar por Tags",
+    "dateFilter": "Filtro por Data",
+    "date": "Data",
+    "clearFilters": "Limpar filtros",
+    "showOrphanNodes": "Mostrar notas isoladas",
+    "showLabels": "Mostrar rótulos",
+    "displayOptions": "Opções de Exibição"
+  },
+  "graph": {
+    "title": "Grafo",
+    "showGraph": "Mostrar Grafo",
+    "hideGraph": "Ocultar Grafo",
+    "nodes": "Notas",
+    "connections": "Conexões",
+    "zoomIn": "Ampliar",
+    "zoomOut": "Reduzir",
+    "resetView": "Resetar Visualização",
+    "graphView": "Vista do Grafo",
+    "notesCount": "notas",
+    "connectionsCount": "conexões",
+    "dragInstructions": "Arraste para mover • Duplo clique para abrir"
+  },
+  "sidebar": {
+    "toggleSidebar": "Alternar barra lateral",
+    "recentActivity": "Atividade Recente",
+    "quickAccess": "Acesso Rápido",
+    "recent": "Recentes",
+    "allNotes": "Todas as Notas"
+  },
+  "dates": {
+    "today": "Hoje",
+    "yesterday": "Ontem", 
+    "daysAgo": "dias atrás",
+    "allTime": "Todo o tempo",
+    "thisWeek": "Esta semana",
+    "thisMonth": "Este mês"
+  },
+  "auth": {
+    "login": "Entrar",
+    "logout": "Sair",
+    "register": "Registrar",
+    "username": "Nome de usuário",
+    "password": "Senha",
+    "email": "Email"
+  },
+  "messages": {
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "noResults": "Nenhum resultado encontrado",
+    "tryAgain": "Tente novamente",
+    "somethingWentWrong": "Algo deu errado",
+    "loadingNotes": "Carregando suas notas...",
+    "noNoteSelected": "Nenhuma nota selecionada",
+    "selectNote": "Selecione uma nota da barra lateral ou crie uma nova",
+    "createFirstNote": "Crie sua primeira nota",
+    "updated": "Atualizado",
+    "modified": "Modificado",
+    "shared": "Compartilhado"
+  },
+  "errors": {
+    "emailRequired": "Email é obrigatório",
+    "invalidEmail": "Por favor, insira um email válido",
+    "noPermissionToCreateAdmin": "Você não tem permissão para criar administradores"
+  },
+  "placeholders": {
+    "searchPlaceholder": "Digite para buscar...",
+    "noteTitlePlaceholder": "Título da nota...",
+    "noteContentPlaceholder": "Escreva sua nota aqui...",
+    "tagSearchPlaceholder": "Buscar tags...",
+    "tagNamePlaceholder": "Nome da tag...",
+    "startWriting": "Comece a escrever..."
+  },
+  "tooltips": {
+    "shareNote": "Compartilhar nota",
+    "removeAccess": "Remover acesso",
+    "chooseColor": "Escolher cor"
+  },
+  "sharing": {
+    "shareNote": "Compartilhar Nota",
+    "manageAccess": "Gerenciar acesso e permissões",
+    "addUser": "Adicionar usuário",
+    "emailAddress": "Endereço de email",
+    "permissionLevel": "Nível de permissão",
+    "emailPlaceholder": "usuario@exemplo.com",
+    "viewOnly": "Apenas visualizar",
+    "edit": "Editar",
+    "admin": "Administrador",
+    "owner": "Proprietário",
+    "you": "Você",
+    "close": "Fechar",
+    "sharedWith": "Compartilhado com",
+    "sharing": "Compartilhando...",
+    "sendInvite": "Enviar Convite",
+    "peopleWithAccess": "Pessoas com acesso",
+    "noAccess": "Ninguém mais tem acesso a esta nota",
+    "permissions": {
+      "visualizar": "Visualizar",
+      "editar": "Editar", 
+      "admin": "Administrador",
+      "owner": "Proprietário"
+    }
+  }
+}
