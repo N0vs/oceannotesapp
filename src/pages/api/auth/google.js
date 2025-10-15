@@ -6,8 +6,38 @@ import { SignJWT } from 'jose';
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
- * API endpoint para autenticação Google OAuth
- * POST /api/auth/google
+ * API endpoint para autenticação via Google OAuth 2.0
+ * Processa tokens do Google Identity Services e cria/autentica usuários
+ * 
+ * @api {POST} /api/auth/google Autenticar com Google
+ * @apiName GoogleAuth
+ * @apiGroup Authentication
+ * @apiVersion 1.0.0
+ * 
+ * @apiParam {string} credential Token JWT do Google Identity Services
+ * 
+ * @apiSuccess {string} token JWT token para autenticação na aplicação
+ * @apiSuccess {Object} user Dados do usuário
+ * @apiSuccess {string} user.email Email do usuário
+ * @apiSuccess {string} user.name Nome do usuário
+ * @apiSuccess {boolean} isNewUser Indica se é um novo usuário
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *     {
+ *       "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+ *       "user": {
+ *         "email": "user@gmail.com",
+ *         "name": "User Name"
+ *       },
+ *       "isNewUser": false
+ *     }
+ * 
+ * @apiError (400) MissingCredential Token Google é obrigatório
+ * @apiError (401) InvalidToken Token Google inválido
+ * @apiError (500) InternalError Erro interno do servidor
+ * 
+ * @description Endpoint para OAuth com Google incluindo criação automática de contas
  */
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
