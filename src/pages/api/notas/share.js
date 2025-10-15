@@ -3,8 +3,48 @@ import authMiddleware from '../../../middlewares/authMiddleware';
 import crypto from 'crypto';
 
 /**
- * Nova API de compartilhamento baseada em tokens de convite
- * POST /api/notas/share
+ * API endpoint para compartilhamento de notas entre usuários
+ * Cria convites baseados em tokens seguros para acesso a notas
+ * 
+ * @api {POST} /api/notas/share Compartilhar nota com usuário
+ * @apiName ShareNote
+ * @apiGroup Notes
+ * @apiVersion 1.0.0
+ * 
+ * @apiHeader {string} Authorization Bearer token JWT
+ * 
+ * @apiParam {string} noteId ID da nota a ser compartilhada
+ * @apiParam {string} userEmail Email do usuário que receberá acesso
+ * @apiParam {string} [permission=visualizar] Tipo de permissão (visualizar|editar|admin)
+ * 
+ * @apiSuccess {boolean} success Indica sucesso da operação
+ * @apiSuccess {string} message Mensagem de confirmação
+ * @apiSuccess {Object} sharing Dados do compartilhamento
+ * @apiSuccess {string} sharing.inviteToken Token de convite gerado
+ * @apiSuccess {string} sharing.permission Permissão concedida
+ * @apiSuccess {string} sharing.expiresAt Data de expiração do convite
+ * 
+ * @apiSuccessExample {json} Success-Response:
+ *     HTTP/1.1 200 OK
+ *     {
+ *       "success": true,
+ *       "message": "Nota compartilhada com sucesso",
+ *       "sharing": {
+ *         "inviteToken": "abc123...",
+ *         "permission": "visualizar",
+ *         "expiresAt": "2023-11-15T10:00:00Z"
+ *       }
+ *     }
+ * 
+ * @apiError (400) MissingParameters noteId e userEmail são obrigatórios
+ * @apiError (401) Unauthorized Usuário não autenticado
+ * @apiError (403) Forbidden Sem permissão para compartilhar esta nota
+ * @apiError (404) NotFound Nota ou usuário não encontrado
+ * @apiError (405) MethodNotAllowed Método HTTP não permitido
+ * @apiError (500) InternalError Erro interno do servidor
+ * 
+ * @description Endpoint para compartilhamento seguro com tokens de convite
+ * @requires authMiddleware Token JWT válido
  */
 async function handler(req, res) {
   if (req.method !== 'POST') {

@@ -4,6 +4,57 @@ import NoteHistoryService from '../../../services/NoteHistoryService.js';
 import { connectToDatabase } from '../../../lib/db.js';
 import authMiddleware from '../../../middlewares/authMiddleware.js';
 
+/**
+ * API endpoint principal para operações de notas
+ * Gerencia listagem e criação de notas com informações de compartilhamento
+ * 
+ * @api {GET,POST} /api/notas Operações principais de notas
+ * @apiName NotesMain
+ * @apiGroup Notes
+ * @apiVersion 1.0.0
+ * 
+ * @apiHeader {string} Authorization Bearer token JWT
+ * 
+ * @apiSuccess (GET 200) {Array} notes Lista completa de notas do usuário
+ * @apiSuccess (GET 200) {Object} notes.note Dados da nota individual
+ * @apiSuccess (GET 200) {boolean} notes.note.isOwned Indica se é proprietário da nota
+ * @apiSuccess (GET 200) {boolean} notes.note.isShared Indica se é nota compartilhada
+ * @apiSuccess (GET 200) {Array} notes.note.sharedWith Lista de usuários com acesso
+ * @apiSuccess (GET 200) {number} notes.note.sharedCount Número de pessoas com acesso
+ * @apiSuccess (GET 200) {string} notes.note.permission Tipo de permissão na nota
+ * @apiSuccess (GET 200) {string} notes.note.lastModifiedBy Nome do último modificador
+ * 
+ * @apiParam (POST) {string} titulo Título da nota
+ * @apiParam (POST) {string} conteudo Conteúdo da nota em HTML
+ * @apiParam (POST) {Array} [topicos] Array de IDs de tópicos associados
+ * 
+ * @apiSuccess (POST 201) {Object} note Nota criada
+ * @apiSuccess (POST 201) {string} note.id ID da nova nota
+ * @apiSuccess (POST 201) {string} note.titulo Título da nota
+ * @apiSuccess (POST 201) {string} note.conteudo Conteúdo da nota
+ * 
+ * @apiSuccessExample {json} GET Success-Response:
+ *     HTTP/1.1 200 OK
+ *     [
+ *       {
+ *         "id": "123",
+ *         "titulo": "Minha Nota",
+ *         "isOwned": true,
+ *         "isShared": false,
+ *         "sharedWith": [],
+ *         "sharedCount": 0,
+ *         "lastModifiedBy": "João Silva"
+ *       }
+ *     ]
+ * 
+ * @apiError (400) ValidationError Dados inválidos para criação
+ * @apiError (401) Unauthorized Token de autenticação inválido
+ * @apiError (405) MethodNotAllowed Método HTTP não permitido
+ * @apiError (500) InternalError Erro interno do servidor
+ * 
+ * @description Endpoint central para CRUD de notas com enriquecimento de dados de compartilhamento
+ * @requires authMiddleware Token JWT válido
+ */
 async function handler(req, res) {
   switch (req.method) {
     case 'GET':

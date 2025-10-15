@@ -26,8 +26,11 @@ async function handler(req, res) {
     const historyService = new NoteHistoryService(db);
     const sharingService = new NoteSharingService(db, historyService);
 
+    // Se targetUserId é 'self', usar o próprio userId
+    const actualTargetUserId = targetUserId === 'self' ? userId : targetUserId;
+
     // Remover compartilhamento
-    await sharingService.unshareNote(noteId, userId, targetUserId);
+    await sharingService.unshareNote(noteId, userId, actualTargetUserId);
 
     res.status(200).json({
       success: true,
