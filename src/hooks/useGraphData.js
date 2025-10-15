@@ -3,8 +3,20 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
 /**
- * Hook personalizado para gerenciar dados de notas e tópicos do grafo
- * Segue o Single Responsibility Principle - responsável apenas por dados
+ * Hook personalizado para gerenciar dados de notas e tópicos para visualização em grafo
+ * Centraliza fetch, cache e sincronização de dados do grafo
+ * 
+ * @hook useGraphData
+ * @returns {Object} Objeto contendo dados e funções de gestão
+ * @returns {Array} returns.notes - Array de notas carregadas
+ * @returns {Array} returns.topics - Array de tópicos carregados
+ * @returns {boolean} returns.loading - Estado de carregamento
+ * @returns {string} returns.error - Mensagem de erro atual
+ * @returns {Function} returns.setError - Função para definir erro
+ * @returns {Function} returns.fetchData - Função para recarregar dados
+ * @returns {Function} returns.updateNoteInState - Função para atualizar nota no estado
+ * @returns {Function} returns.addTopicToState - Função para adicionar tópico ao estado
+ * @description Hook especializado em dados do grafo seguindo Single Responsibility Principle
  */
 export const useGraphData = () => {
   const router = useRouter();

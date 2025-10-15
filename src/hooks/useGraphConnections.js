@@ -1,9 +1,15 @@
 import { useMemo } from 'react';
 
 /**
- * Hook personalizado para calcular conexões entre notas do grafo
- * Segue o Single Responsibility Principle - responsável apenas por cálculo de conexões
- * Segue o Open/Closed Principle - extensível para diferentes tipos de conexão
+ * Hook especializado para calcular conexões entre notas no grafo
+ * Gera links baseados em tags compartilhadas entre notas
+ * 
+ * @hook useGraphConnections
+ * @param {Array} notes - Array de notas para calcular conexões
+ * @returns {Object} Objeto contendo nós e links do grafo
+ * @returns {Array} returns.nodes - Nós processados para o grafo
+ * @returns {Array} returns.links - Links entre nós baseados em tags
+ * @description Hook otimizado para cálculo de conexões de grafo com useMemo
  */
 export const useGraphConnections = (notes) => {
   

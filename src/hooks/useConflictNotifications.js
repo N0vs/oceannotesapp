@@ -1,9 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Cookies from 'js-cookie';
 
 /**
- * Hook para gerenciar notificações de conflito
- * Segue o Single Responsibility Principle - responsável apenas por notificações de conflito
+ * Hook personalizado para gerenciar notificações de conflitos de edição
+ * Monitora conflitos em tempo real via WebSocket e oferece resolução
+ * 
+ * @hook useConflictNotifications
+ * @returns {Object} Objeto contendo estados e funções de conflitos
+ * @returns {Array} returns.conflicts - Lista de conflitos ativos
+ * @returns {boolean} returns.hasUnresolvedConflicts - Indica se há conflitos pendentes
+ * @returns {Function} returns.resolveConflict - Função para resolver conflito
+ * @returns {Function} returns.acceptChanges - Função para aceitar mudanças
+ * @returns {Function} returns.rejectChanges - Função para rejeitar mudanças
+ * @description Hook para gestão de conflitos de edição simultânea com WebSocket
  */
 const useConflictNotifications = () => {
   const [conflicts, setConflicts] = useState([]);

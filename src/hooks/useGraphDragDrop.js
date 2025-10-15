@@ -1,17 +1,28 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
- * Hook personalizado para gerenciar drag & drop dos nós do grafo
- * Segue o Single Responsibility Principle - responsável apenas por drag & drop
+ * Hook especializado para funcionalidade de drag and drop no grafo
+ * Gerencia estado e operações de arrastar nós do grafo
+ * 
+ * @hook useGraphDragDrop
+ * @param {Object} nodePositions - Posições atuais dos nós
+ * @param {Function} setNodePositions - Função para atualizar posições
+ * @returns {Object} Objeto contendo estados e handlers de drag
+ * @returns {boolean} returns.isDragging - Indica se está arrastando
+ * @returns {Object|null} returns.draggedNode - Nó sendo arrastado
+ * @returns {Object} returns.dragOffset - Offset do mouse relativo ao nó
+ * @returns {Function} returns.handleMouseDown - Handler para início do drag
+ * @returns {Function} returns.handleMouseMove - Handler para movimento do drag
+ * @returns {Function} returns.handleMouseUp - Handler para fim do drag
+ * @description Hook otimizado para interações de drag and drop em grafos
  */
-export const useGraphDragDrop = (svgWidth, svgHeight) => {
+export const useGraphDragDrop = (nodePositions, setNodePositions) => {
   const svgRef = useRef(null);
-  const [nodePositions, setNodePositions] = useState({});
   const [dragging, setDragging] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // Inicializar posições dos nós em círculo
-  const initializeNodePositions = (notes) => {
+  const initializeNodePositions = useCallback((notes, svgWidth = 800, svgHeight = 600) => {
     if (notes.length > 0 && Object.keys(nodePositions).length === 0) {
       const positions = {};
       const centerX = svgWidth / 2;
@@ -28,7 +39,7 @@ export const useGraphDragDrop = (svgWidth, svgHeight) => {
 
       setNodePositions(positions);
     }
-  };
+  }, [nodePositions, setNodePositions]);
 
   const handleMouseDown = (e, noteId) => {
     e.preventDefault();

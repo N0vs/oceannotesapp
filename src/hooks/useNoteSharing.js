@@ -2,8 +2,19 @@ import { useState, useCallback } from 'react';
 import Cookies from 'js-cookie';
 
 /**
- * Hook para gerenciar compartilhamento de notas
- * Segue o Single Responsibility Principle - responsável apenas por lógica de compartilhamento
+ * Hook personalizado para gerenciar compartilhamento de notas entre usuários
+ * Centraliza operações de compartilhar, remover acesso e gerenciar permissões
+ * 
+ * @hook useNoteSharing
+ * @returns {Object} Objeto contendo estados e funções de compartilhamento
+ * @returns {boolean} returns.isLoading - Estado de carregamento das operações
+ * @returns {string|null} returns.error - Mensagem de erro atual ou null
+ * @returns {Array} returns.sharedUsers - Lista de usuários com acesso à nota
+ * @returns {Function} returns.shareNote - Função para compartilhar nota com usuário
+ * @returns {Function} returns.unshareNote - Função para remover acesso de usuário
+ * @returns {Function} returns.getSharedUsers - Função para buscar usuários compartilhados
+ * @returns {Function} returns.updatePermission - Função para atualizar permissões
+ * @description Hook completo seguindo Single Responsibility Principle para compartilhamento
  */
 const useNoteSharing = () => {
   const [isLoading, setIsLoading] = useState(false);
