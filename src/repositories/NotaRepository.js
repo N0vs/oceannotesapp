@@ -1,5 +1,13 @@
 import pool from '../config/database.js';
 
+/**
+ * Repository para operações de dados da entidade Nota
+ * Implementa padrão Repository com operações CRUD e relacionamentos
+ * Gerencia persistência de notas incluindo tópicos associados
+ * 
+ * @class NotaRepository
+ * @description Repository principal para operações de notas com suporte a compartilhamento
+ */
 class NotaRepository {
   /**
    * @deprecated Esta função está obsoleta devido a inconsistências nos nomes de campos.

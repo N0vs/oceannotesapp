@@ -1,5 +1,13 @@
 import pool from '../config/database.js';
 
+/**
+ * Repository para operações de dados da entidade Utilizador
+ * Implementa padrão Repository para gestão de usuários
+ * Gerencia autenticação, registro e busca de usuários
+ * 
+ * @class UtilizadorRepository
+ * @description Repository responsável por operações de persistência de usuários
+ */
 class UtilizadorRepository {
   async create(utilizador) {
     const { Nome, Password, Email } = utilizador;

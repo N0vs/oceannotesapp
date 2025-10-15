@@ -1,5 +1,13 @@
 import pool from '../config/database.js';
 
+/**
+ * Repository para operações da tabela de relacionamento NotaTopico
+ * Implementa padrão Repository para associações many-to-many
+ * Gerencia relacionamentos entre notas e tópicos
+ * 
+ * @class NotaTopicoRepository
+ * @description Repository para operações de relacionamento entre notas e tópicos
+ */
 class NotaTopicoRepository {
  /*  async associateTopicosToNota(notaId, topicoIds) {
     // Primeiro, remove todas as associações existentes
