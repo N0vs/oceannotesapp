@@ -1,5 +1,16 @@
 import { useState, useEffect } from 'react';
 
+/**
+ * Componente de filtros avançados para notas
+ * Oferece filtros por texto, data, período e tags
+ * 
+ * @component
+ * @param {Object} props - Propriedades do componente
+ * @param {Function} props.onFiltersChange - Callback quando filtros mudam
+ * @param {Array} props.availableTopics - Array de tags disponíveis para filtro
+ * @returns {JSX.Element} Elemento JSX dos filtros
+ * @description Componente de filtros com múltiplas opções de filtragem
+ */
 const NotesFilters = ({ onFiltersChange, availableTopics = [] }) => {
   const [filters, setFilters] = useState({
     searchText: '', // Nome do ficheiro, utilizador ou email

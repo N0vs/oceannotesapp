@@ -3,8 +3,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Cookies from 'js-cookie';
+import { useTranslation } from '../hooks/useTranslation';
 
-// Importar Quill dinamicamente para evitar problemas de SSR
+/**
+ * Configuração de importação dinâmica do ReactQuill
+ * Evita problemas de SSR (Server-Side Rendering) carregando Quill apenas no cliente
+ * @constant ReactQuill - Componente Quill carregado dinamicamente
+ * @description Carrega React Quill, CSS, highlight.js e configura syntax highlighting
+ */
 const ReactQuill = dynamic(
   async () => {
     const { default: RQ } = await import('react-quill');
@@ -24,32 +30,64 @@ const ReactQuill = dynamic(
   }
 );
 
+/**
+ * Editor de texto rico com funcionalidades de upload de imagem e drag & drop
+ * Baseado em Quill.js com suporte a syntax highlighting e inserção de mídia
+ * 
+ * @component
+ * @param {Object} props - Propriedades do componente
+ * @param {string} props.value - Conteúdo HTML atual do editor
+ * @param {Function} props.onChange - Callback chamado quando conteúdo muda
+ * @param {string|null} props.notaId - ID da nota para associar uploads de imagem
+ * @param {string} props.placeholder - Texto placeholder para o editor
+ * @returns {JSX.Element} Elemento JSX do editor de texto rico
+ * @description Editor completo com upload de imagens, drag & drop, syntax highlighting
+ */
 const RichTextEditor = ({ value, onChange, notaId = null, placeholder = "Escreva o conteúdo da sua nota..." }) => {
-  const [editorValue, setEditorValue] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const quillRef = useRef(null);
-  const currentContentRef = useRef('');
+  const { t } = useTranslation();
+  
+  // Estados do editor
+  const [editorValue, setEditorValue] = useState(''); // Conteúdo HTML atual do editor
+  const [isUploading, setIsUploading] = useState(false); // Indicador de upload em progresso
+  const [isDragging, setIsDragging] = useState(false); // Feedback visual para drag & drop
+  const [isMounted, setIsMounted] = useState(false); // Controle de hidratação SSR
+  
+  // Referências para controle direto
+  const quillRef = useRef(null); // Referência para instância do Quill
+  const currentContentRef = useRef(''); // Cache do conteúdo para comparações
 
+  // Efeito de montagem: controla hidratação para evitar erros de SSR
+  // Componente só renderiza após montagem completa no cliente
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
 
+  // Efeito de sincronização: atualiza editor quando prop value muda
+  // Garante que editor reflete mudanças externas no conteúdo
   useEffect(() => {
     if (isMounted) {
-      const safeValue = value || '';
+      const safeValue = value || ''; // Fallback para string vazia
       setEditorValue(safeValue);
-      currentContentRef.current = safeValue;
+      currentContentRef.current = safeValue; // Mantém cache sincronizado
     }
   }, [value, isMounted]);
 
 
 
-  // Handler de imagem separado para ter acesso às refs
-  const handleImageUpload = async (file) => {
+  /**
+   * Gerencia upload de imagens e inserção no editor
+   * Valida tamanho, faz upload via API e insere na posição do cursor
+   * @async
+   * @function handleImageUpload
+   * @param {File} file - Arquivo de imagem a ser enviado
+   * @param {number|null} explicitPosition - Posição específica para inserção, null usa cursor atual
+   * @returns {Promise<void>} Não retorna valor, atualiza conteúdo do editor
+   * @description Faz upload para API de mídia e insere imagem no editor na posição correta
+   */
+  const handleImageUpload = async (file, explicitPosition = null) => {
     if (file.size > 10 * 1024 * 1024) {
-      alert('A imagem é muito grande. Máximo 10MB.');
+      alert(t('editor.imageTooLarge'));
       return;
     }
 
@@ -72,22 +110,55 @@ const RichTextEditor = ({ value, onChange, notaId = null, placeholder = "Escreva
       const result = await response.json();
       
       if (result.success) {
-        // Usar o conteúdo mais atual da ref
-        const currentContent = currentContentRef.current || '';
+        const quill = quillRef.current?.getEditor();
         
-        // HTML da imagem
-        const imageHtml = `<p><img src="${result.media.url}" style="max-width: 100%; height: auto;" /></p>`;
-        
-        // Inserir no final do conteúdo atual
-        const newContent = currentContent + imageHtml;
-        
-        // Atualizar tanto o estado quanto a ref
-        setEditorValue(newContent);
-        currentContentRef.current = newContent;
-        
-        // Notificar o componente pai sobre a mudança
-        if (onChange) {
-          onChange(newContent);
+        if (quill) {
+          // Garantir que o editor tenha foco
+          quill.focus();
+          
+          // Obter posição atual do cursor
+          let position;
+          
+          if (explicitPosition !== null) {
+            position = explicitPosition;
+          } else {
+            const selection = quill.getSelection(true);
+            position = selection ? selection.index : quill.getLength();
+          }
+          
+          // Verificar se a posição é válida
+          const maxLength = quill.getLength();
+          if (position > maxLength) {
+            position = maxLength;
+          }
+          
+          // Inserir imagem na posição do cursor
+          quill.insertEmbed(position, 'image', result.media.url);
+          
+          // Mover cursor para após a imagem
+          quill.setSelection(position + 1);
+          
+          // Atualizar conteúdo
+          const newContent = quill.root.innerHTML;
+          setEditorValue(newContent);
+          currentContentRef.current = newContent;
+          
+          if (onChange) {
+            onChange(newContent);
+          }
+          
+        } else {
+          // Fallback HTML se Quill não estiver disponível
+          const currentContent = currentContentRef.current || '';
+          const imageHtml = `<p><img src="${result.media.url}" style="max-width: 100%; height: auto;" /></p>`;
+          const newContent = currentContent + imageHtml;
+          
+          setEditorValue(newContent);
+          currentContentRef.current = newContent;
+          
+          if (onChange) {
+            onChange(newContent);
+          }
         }
       } else {
         throw new Error(result.error || 'Erro no upload da imagem');
@@ -95,9 +166,72 @@ const RichTextEditor = ({ value, onChange, notaId = null, placeholder = "Escreva
       
     } catch (error) {
       console.error('Erro no upload:', error);
-      alert('Erro ao fazer upload da imagem: ' + error.message);
+      alert(t('editor.uploadError') + ': ' + error.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  /**
+   * Gerencia entrada de drag sobre o editor
+   * Ativa estado visual de drag quando arquivo entra na área do editor
+   * @function handleDragEnter
+   * @param {DragEvent} e - Evento de drag
+   * @returns {void} Não retorna valor, atualiza estado isDragging
+   * @description Previne comportamento padrão e ativa feedback visual de drag
+   */
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  /**
+   * Gerencia saída de drag do editor
+   * Desativa estado visual apenas quando realmente sai do componente
+   * @function handleDragLeave
+   * @param {DragEvent} e - Evento de drag
+   * @returns {void} Não retorna valor, pode atualizar estado isDragging
+   * @description Verifica se realmente saiu do componente antes de desativar feedback visual
+   */
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    // Só remover o estado de dragging se sair do componente principal
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setIsDragging(false);
+    }
+  };
+
+  /**
+   * Gerencia movimento de drag sobre o editor
+   * Previne comportamento padrão do navegador para permitir drop
+   * @function handleDragOver
+   * @param {DragEvent} e - Evento de drag
+   * @returns {void} Não retorna valor
+   * @description Necessário para permitir que o drop funcione corretamente
+   */
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  /**
+   * Gerencia drop de arquivos no editor
+   * Filtra apenas arquivos de imagem e chama função de upload
+   * @async
+   * @function handleDrop
+   * @param {DragEvent} e - Evento de drop
+   * @returns {Promise<void>} Não retorna valor, pode chamar handleImageUpload
+   * @description Processa arquivos dropados, filtra imagens e inicia upload
+   */
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (imageFiles.length > 0) {
+      // Para drag & drop, inserir na posição atual do cursor
+      await handleImageUpload(imageFiles[0]);
     }
   };
 
@@ -144,6 +278,14 @@ const RichTextEditor = ({ value, onChange, notaId = null, placeholder = "Escreva
     'link', 'image', 'code', 'code-block'
   ];
 
+  /**
+   * Gerencia mudanças no conteúdo do editor
+   * Atualiza estados locais e chama callback de mudança
+   * @function handleChange
+   * @param {string} content - Novo conteúdo HTML do editor
+   * @returns {void} Não retorna valor, atualiza estados e chama onChange
+   * @description Sincroniza conteúdo local com componente pai quando editor muda
+   */
   const handleChange = (content) => {
     if (isMounted) {
       setEditorValue(content);
@@ -160,22 +302,66 @@ const RichTextEditor = ({ value, onChange, notaId = null, placeholder = "Escreva
   }
 
   return (
-    <div className="rich-text-editor">
-      {isUploading && (
-        <div className="mb-2 text-blue-600 text-sm">
-          📤 Carregando imagem...
+    <div 
+      className={`rich-text-editor relative ${isDragging ? 'border-2 border-dashed border-blue-500 bg-blue-50' : ''}`}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+    >
+      {/* Estilos inline para o Quill */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .rich-text-editor .ql-editor.ql-blank::before {
+            color: #9ca3af !important;
+            font-style: normal !important;
+          }
+          .rich-text-editor .ql-picker-options {
+            background-color: #374151 !important;
+            border: 1px solid #4b5563 !important;
+          }
+          .rich-text-editor .ql-picker-item {
+            color: #e5e7eb !important;
+          }
+          .rich-text-editor .ql-picker-item:hover {
+            background-color: #4b5563 !important;
+            color: #ffffff !important;
+          }
+          .rich-text-editor .ql-picker-label {
+            color: #e5e7eb !important;
+          }
+        `
+      }} />
+      
+      {/* Overlay para drag & drop */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-blue-500 bg-opacity-10 flex items-center justify-center z-10 rounded">
+          <div className="bg-white bg-opacity-90 p-4 rounded-lg shadow-lg border-2 border-blue-500 border-dashed">
+            <div className="text-blue-600 text-lg font-medium flex items-center">
+              🖼️ {t('editor.dropImageHere')}
+            </div>
+          </div>
         </div>
       )}
       
-      <ReactQuill
-        ref={quillRef}
-        theme="snow"
-        value={editorValue}
-        onChange={handleChange}
-        modules={modules}
-        formats={formats}
-        placeholder={placeholder}
-      />
+      {isUploading && (
+        <div className="mb-2 text-blue-600 text-sm flex items-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+          📤 {t('editor.uploadingImage')}
+        </div>
+      )}
+      
+      <div className="relative">
+        <ReactQuill
+          ref={quillRef}
+          theme="snow"
+          value={editorValue}
+          onChange={handleChange}
+          modules={modules}
+          formats={formats}
+          placeholder={placeholder}
+        />
+      </div>
     </div>
   );
 };

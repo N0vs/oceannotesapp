@@ -5,19 +5,39 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { useTranslation } from '../hooks/useTranslation';
 
+/**
+ * Componente de sidebar principal da aplicação
+ * Gerencia navegação, filtros, busca de notas e criação de novas notas
+ * 
+ * @component
+ * @param {Object} props - Propriedades do componente
+ * @param {Array} props.notes - Array de notas para exibir na sidebar
+ * @param {Function} props.onCreateNote - Callback para criar nova nota
+ * @param {Function} props.onSelectNote - Callback para selecionar nota
+ * @param {string} props.selectedNoteId - ID da nota atualmente selecionada
+ * @param {Function} props.onLogout - Callback para logout do usuário
+ * @param {Array} props.availableTopics - Array de tags disponíveis para filtros
+ * @param {Function} props.onFiltersChange - Callback quando filtros mudam
+ * @param {Function} props.onShowGraph - Callback para exibir visualização em grafo
+ * @param {boolean} props.showingGraph - Indica se está exibindo grafo atualmente
+ * @returns {JSX.Element} Elemento JSX da sidebar
+ * @description Sidebar completa com navegação, filtros avançados, busca e gestão de notas
+ */
 const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteId, onLogout, availableTopics = [], onFiltersChange, onShowGraph, showingGraph }) => {
   const { t } = useTranslation();
   
   const [expandedSections, setExpandedSections] = useState({
     recent: true,
-    notes: true,
+    notes: false,  // Todas as Notas fechada por padrão
     filters: false
   });
 
   const [filters, setFilters] = useState({
     searchText: '',
     selectedTopics: [],
-    dateFilter: 'all'
+    dateFilter: 'all',
+    customDateStart: '',
+    customDateEnd: ''
   });
 
   const [tagSearch, setTagSearch] = useState('');
@@ -26,12 +46,27 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
 
   const router = useRouter();
 
+  /**
+   * Gerencia logout do usuário
+   * Remove token de autenticação e redireciona para página de login
+   * @function handleLogout
+   * @returns {void} Não retorna valor, executa logout e redirecionamento
+   * @description Limpa sessão do usuário e redireciona para página inicial
+   */
   const handleLogout = () => {
     Cookies.remove('token');
     if (onLogout) onLogout();
     router.push('/');
   };
 
+  /**
+   * Alterna expansão/colapso de seções da sidebar
+   * Controla quais seções estão visíveis (filtros, notas recentes, todas as notas)
+   * @function toggleSection
+   * @param {string} section - Nome da seção a ser alternada
+   * @returns {void} Não retorna valor, atualiza estado expandedSections
+   * @description Permite colapsar/expandir seções para melhor organização visual
+   */
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
       ...prev,
@@ -39,11 +74,26 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
     }));
   };
 
+  /**
+   * Gerencia mudanças nos filtros da sidebar
+   * Atualiza filtros locais e notifica componente pai sobre mudanças
+   * @function handleFilterChange
+   * @param {string} key - Chave do filtro a ser alterado
+   * @param {any} value - Novo valor para o filtro
+   * @returns {void} Não retorna valor, atualiza filters e chama onFiltersChange
+   * @description Centraliza lógica de mudança de filtros e limpa campos relacionados quando necessário
+   */
   const handleFilterChange = (key, value) => {
-    const newFilters = {
-      ...filters,
-      [key]: value
-    };
+    let newFilters = { ...filters, [key]: value };
+    
+    // Limpar campos de data personalizada quando mudar para outro filtro de data
+    if (key === 'dateFilter' && value !== 'custom') {
+      newFilters.customDateStart = '';
+      newFilters.customDateEnd = '';
+    }
+    
+    // Não expandir automaticamente - deixar o usuário controlar
+    
     setFilters(newFilters);
     
     if (onFiltersChange) {
@@ -63,7 +113,9 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
     const clearedFilters = {
       searchText: '',
       selectedTopics: [],
-      dateFilter: 'all'
+      dateFilter: 'all',
+      customDateStart: '',
+      customDateEnd: ''
     };
     setFilters(clearedFilters);
     setTagSearch('');
@@ -139,7 +191,7 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
   return (
     <div className="h-full flex flex-col bg-gray-800">
       {/* Header da Sidebar */}
-      <div className="p-4 border-b border-gray-700 space-y-2">
+      <div className="flex-shrink-0 p-4 border-b border-gray-700 space-y-2">
         <h2 className="text-lg font-semibold text-gray-100 mb-3">Ocean Notes</h2>
         
         {/* Header com botões */}
@@ -168,9 +220,11 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
         </button>
       </div>
 
-      {/* Filtros */}
-      <div className="px-4 py-3 border-b border-gray-700">
-        <button
+      {/* Conteúdo principal scrollável */}
+      <div className="flex-1 overflow-y-auto">
+        {/* Filtros */}
+        <div className="px-4 py-3 border-b border-gray-700">
+          <button
           onClick={() => toggleSection('filters')}
           className="w-full flex items-center justify-between p-2 text-sm font-medium text-gray-300 hover:text-gray-100 hover:bg-gray-700 rounded-lg transition-colors"
         >
@@ -179,7 +233,7 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
             </svg>
             <span>{t('filters.title')}</span>
-            {(filters.searchText || filters.selectedTopics.length > 0 || filters.dateFilter !== 'all') && (
+            {(filters.searchText || filters.selectedTopics.length > 0 || filters.dateFilter !== 'all' || filters.customDateStart || filters.customDateEnd) && (
               <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
             )}
           </div>
@@ -194,7 +248,7 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
         </button>
         
         {expandedSections.filters && (
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-3 max-h-80 overflow-y-auto">
             {/* Search */}
             <div className="relative">
               <input
@@ -338,11 +392,39 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
                 <option value="today">{t('dates.today')}</option>
                 <option value="week">{t('dates.thisWeek')}</option>
                 <option value="month">{t('dates.thisMonth')}</option>
+                <option value="custom">{t('dates.customPeriod')}</option>
               </select>
+              
+              {/* Campos de período personalizado - Layout compacto */}
+              {filters.dateFilter === 'custom' && (
+                <div className="mt-2 p-2 bg-gray-800/30 border border-gray-600/50 rounded">
+                  {/* Campos de data compactos */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">De:</label>
+                      <input
+                        type="date"
+                        value={filters.customDateStart}
+                        onChange={(e) => handleFilterChange('customDateStart', e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-400 block mb-1">Até:</label>
+                      <input
+                        type="date"
+                        value={filters.customDateEnd}
+                        onChange={(e) => handleFilterChange('customDateEnd', e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Clear Filters */}
-            {(filters.searchText || filters.selectedTopics.length > 0 || filters.dateFilter !== 'all') && (
+            {(filters.searchText || filters.selectedTopics.length > 0 || filters.dateFilter !== 'all' || filters.customDateStart || filters.customDateEnd) && (
               <button
                 onClick={clearFilters}
                 className="w-full text-xs text-gray-400 hover:text-gray-200 py-1.5 border border-gray-600 rounded hover:border-gray-500 transition-colors"
@@ -352,10 +434,8 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
             )}
           </div>
         )}
-      </div>
+        </div>
 
-      {/* Navegação */}
-      <div className="flex-1 overflow-y-auto p-2">
         {/* Seção Recentes */}
         <div className="mb-4">
           <button
@@ -456,11 +536,11 @@ const ObsidianSidebar = ({ notes = [], onCreateNote, onSelectNote, selectedNoteI
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-700">
+      {/* Logout - Footer fixo */}
+      <div className="flex-shrink-0 p-4 border-t border-gray-700">
         <button
           onClick={handleLogout}
-          className="w-full text-left p-2 text-sm text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors flex items-center space-x-2"
+          className="w-full flex items-center justify-center space-x-2 py-2 px-3 text-gray-400 hover:text-gray-200 hover:bg-gray-700 rounded-lg transition-colors text-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

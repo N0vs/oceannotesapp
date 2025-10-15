@@ -5,7 +5,17 @@ import Cookies from 'js-cookie';
 import { useTranslation } from '../hooks/useTranslation';
 
 /**
- * Modal simples para compartilhar notas
+ * Modal para compartilhamento de notas com outros usuários
+ * Permite adicionar/remover usuários e definir níveis de permissão
+ * 
+ * @component
+ * @param {Object} props - Propriedades do componente
+ * @param {boolean} props.isOpen - Controla se modal está aberto
+ * @param {Function} props.onClose - Callback para fechar modal
+ * @param {string} props.noteId - ID da nota a ser compartilhada
+ * @param {string} props.noteTitle - Título da nota para exibição
+ * @returns {JSX.Element|null} Elemento JSX do modal ou null se fechado
+ * @description Modal completo com gestão de usuários compartilhados e permissões
  */
 const ShareNoteModal = ({ 
   isOpen, 

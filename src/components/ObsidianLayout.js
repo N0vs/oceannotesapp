@@ -2,6 +2,18 @@
 
 import { useState } from 'react';
 
+/**
+ * Layout principal da aplicação com sidebar e painel direito
+ * Gerencia posicionamento e visibilidade dos painéis laterais
+ * 
+ * @component
+ * @param {Object} props - Propriedades do componente
+ * @param {React.ReactNode} props.children - Conteúdo principal da aplicação
+ * @param {React.ReactNode} props.sidebar - Componente da sidebar esquerda
+ * @param {React.ReactNode} props.rightPanel - Componente do painel direito (opcional)
+ * @returns {JSX.Element} Elemento JSX do layout
+ * @description Layout responsivo com controle de visibilidade de painéis laterais
+ */
 const ObsidianLayout = ({ children, sidebar, rightPanel = null }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(false);

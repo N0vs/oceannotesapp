@@ -3,6 +3,18 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from '../hooks/useTranslation';
 
+/**
+ * Componente de visualização de notas em grafo interativo
+ * Renderiza notas como nós conectados por tags compartilhadas
+ * 
+ * @component
+ * @param {Object} props - Propriedades do componente
+ * @param {Array} props.notes - Array de notas para visualizar no grafo
+ * @param {Function} props.onSelectNote - Callback quando nota é selecionada no grafo
+ * @param {Object} props.selectedNote - Nota atualmente selecionada
+ * @returns {JSX.Element} Elemento JSX do grafo interativo
+ * @description Grafo D3-like com drag & drop, filtros e visualização de conexões entre notas
+ */
 const ObsidianGraph = ({ notes = [], onSelectNote, selectedNote }) => {
   const { t } = useTranslation();
   const svgRef = useRef();
