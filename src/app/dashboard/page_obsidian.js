@@ -8,59 +8,113 @@ import ObsidianSidebar from '../../components/ObsidianSidebar';
 import ObsidianEditor from '../../components/ObsidianEditor';
 import ShareNoteModal from '../../components/ShareNoteModal';
 
+/**
+ * Versão simplificada do dashboard Obsidian sem visualização em grafo
+ * Layout básico focado em produtividade de escrita e edição
+ * 
+ * @component ObsidianDashboard
+ * @description Versão alternativa do dashboard principal que:
+ * - Implementa layout simplificado sem grafo de conexões
+ * - Foca na experiência de escrita e edição de notas
+ * - Mantém funcionalidades core: sidebar + editor
+ * - Gerencia estado de notas e tópicos de forma otimizada
+ * - Suporta compartilhamento via modal
+ * - Usa useCallback para otimização de performance
+ * 
+ * @features
+ * - Interface limpa e minimalista
+ * - Criação e edição de notas
+ * - Sistema de tags/tópicos
+ * - Compartilhamento de notas
+ * - Busca e filtros na sidebar
+ * - Performance otimizada com callbacks
+ * 
+ * @state
+ * - notes: Array de notas do usuário
+ * - selectedNote: Nota selecionada para edição
+ * - isCreatingNote: Mode de criação de nova nota
+ * - availableTopics: Tópicos disponíveis para categorização
+ * - loading: Estado de carregamento
+ * - error: Mensagens de erro
+ * - showShareModal: Controle do modal de compartilhamento
+ * 
+ * @performance
+ * - Usa useCallback para funções que são passadas como props
+ * - Otimizada para foco na experiência de escrita
+ * - Menos overhead que a versão completa com grafo
+ * 
+ * @example
+ * // Uso como alternativa mais leve
+ * export default function SimpleDashboard() {
+ *   return <ObsidianDashboard />;
+ * }
+ * 
+ * @requires Authentication via JWT cookie
+ */
 function ObsidianDashboard() {
   const router = useRouter();
   const [notes, setNotes] = useState([]);
-  const [selectedNote, setSelectedNote] = useState(null);
+  const [selectedNote, setSelectedNote] = useState(null); // Por padrão nenhuma nota selecionada
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showShareModal, setShowShareModal] = useState(null);
 
-  // Fetch notes
+  // Fetch notes: versão simplificada sem cache dual (allNotes)
   const fetchNotes = async () => {
+    // Loading state para feedback visual durante carregamento
     setLoading(true);
+    
+    // Authentication check via cookie JWT
     const token = Cookies.get('token');
     
+    // Route protection: redirect para login se não autenticado
     if (!token) {
       router.push('/');
       return;
     }
 
     try {
+      // API call para endpoint de notas protegido
       const response = await fetch('/api/notas', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` // Bearer token authentication
         }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setNotes(data);
+        // Estado único: versão simplificada não mantém cache separado
+        setNotes(data); // Único array de notas (não há allNotes aqui)
       } else {
         throw new Error('Erro ao carregar notas');
       }
     } catch (error) {
+      // Error handling com mensagem user-friendly
       setError('Erro ao carregar notas: ' + error.message);
     } finally {
+      // Loading cleanup: sempre remove loading state
       setLoading(false);
     }
   };
 
-  // Fetch topics
+  // Fetch topics: carrega tópicos disponíveis para categorização
   const fetchTopics = async () => {
+    // Reutiliza token de autenticação
     const token = Cookies.get('token');
     
     try {
+      // API call para tópicos do usuário
       const response = await fetch('/api/topicos', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` // Consistência de auth
         }
       });
 
       if (response.ok) {
         const data = await response.json();
+        // Atualiza lista de tópicos para seleção no editor
         setAvailableTopics(data);
       }
     } catch (error) {
@@ -71,6 +125,10 @@ function ObsidianDashboard() {
   useEffect(() => {
     fetchNotes();
     fetchTopics();
+    
+    // Garantir que nenhuma nota esteja selecionada ao carregar
+    setSelectedNote(null);
+    setIsCreatingNote(false);
   }, []);
 
   // Handle create note

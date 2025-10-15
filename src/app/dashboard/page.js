@@ -10,12 +10,54 @@ import ObsidianEditor from '../../components/ObsidianEditor';
 import ObsidianGraph from '../../components/ObsidianGraph';
 import ShareNoteModal from '../../components/ShareNoteModal';
 
+/**
+ * Componente principal do dashboard da aplicação Ocean Notes
+ * Interface tipo Obsidian com sidebar, editor e visualização em grafo
+ * 
+ * @component ObsidianDashboard
+ * @description Componente raiz do dashboard que:
+ * - Gerencia estado global de notas e tópicos da aplicação
+ * - Implementa autenticação via cookies JWT
+ * - Coordena comunicação entre sidebar, editor e grafo
+ * - Controla modais de compartilhamento e criação de notas
+ * - Realiza fetching inicial e refresh de dados
+ * - Suporta internacionalização via useTranslation
+ * 
+ * @features
+ * - Interface responsiva tipo Obsidian
+ * - Criação, edição e exclusão de notas
+ * - Sistema de tags/tópicos
+ * - Visualização em grafo de conexões
+ * - Compartilhamento colaborativo de notas
+ * - Filtros e busca avançada
+ * - Refresh específico de notas individuais
+ * 
+ * @state
+ * - notes: Array de notas filtradas para exibição
+ * - allNotes: Array completo de notas (cache local)
+ * - selectedNote: Nota atualmente selecionada no editor
+ * - isCreatingNote: Flag para modo de criação de nova nota
+ * - availableTopics: Lista de tópicos disponíveis do usuário
+ * - loading: Estado de carregamento inicial
+ * - error: Mensagens de erro para exibição
+ * - showShareModal: Controle do modal de compartilhamento
+ * - showGraph: Toggle entre editor e visualização em grafo
+ * 
+ * @example
+ * // Uso como página principal
+ * export default function DashboardPage() {
+ *   return <ObsidianDashboard />;
+ * }
+ * 
+ * @requires Authentication via JWT cookie
+ * @redirects Redirects to login if no valid token
+ */
 function ObsidianDashboard() {
   const { t } = useTranslation();
   const router = useRouter();
   const [notes, setNotes] = useState([]);
   const [allNotes, setAllNotes] = useState([]);
-  const [selectedNote, setSelectedNote] = useState(null);
+  const [selectedNote, setSelectedNote] = useState(null); // Por padrão nenhuma nota selecionada
   const [isCreatingNote, setIsCreatingNote] = useState(false);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,63 +65,82 @@ function ObsidianDashboard() {
   const [showShareModal, setShowShareModal] = useState(null);
   const [showGraph, setShowGraph] = useState(false);
 
-  // Fetch notes
+  // Fetch notes: função principal para carregamento de todas as notas do usuário
   const fetchNotes = async () => {
+    // Loading state: indica carregamento para mostrar feedback visual ao usuário
     setLoading(true);
+    
+    // Authentication check: obtém token JWT dos cookies para API calls
     const token = Cookies.get('token');
     
+    // Redirect se não autenticado: proteção de rota
     if (!token) {
-      router.push('/');
+      router.push('/'); // Volta para página de login
       return;
     }
 
     try {
+      // API call para buscar notas: endpoint protegido que retorna notas + dados de compartilhamento
       const response = await fetch('/api/notas', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` // JWT authentication header
         }
       });
 
       if (response.ok) {
         const data = await response.json();
         
-        // Forçar atualização síncrona usando callback
-        setNotes(() => data);
-        setAllNotes(() => data);
+        // Estado dual: notes para exibição (pode ser filtrado), allNotes para cache completo
+        // Callback pattern força atualização síncrona, evita race conditions
+        setNotes(() => data);     // Notas visíveis na sidebar
+        setAllNotes(() => data);  // Cache completo para filtros e buscas
       } else {
         throw new Error('Erro ao carregar notas');
       }
     } catch (error) {
+      // Error handling: captura erros de rede, API ou parsing
       setError('Erro ao carregar notas: ' + error.message);
     } finally {
+      // Cleanup: sempre desativa loading independente de sucesso/erro
       setLoading(false);
     }
   };
 
-  // Fetch topics
+  // Fetch topics: função para carregamento de tópicos/tags disponíveis do usuário
   const fetchTopics = async () => {
+    // Reutiliza token para consistência de autenticação
     const token = Cookies.get('token');
     
     try {
+      // API call para tópicos: endpoint que retorna lista de tags do usuário
       const response = await fetch('/api/topicos', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}` // Mesmo padrão de auth das notas
         }
       });
 
       if (response.ok) {
         const data = await response.json();
+        // Atualiza lista de tópicos disponíveis para seleção no editor
         setAvailableTopics(data);
       }
     } catch (error) {
+      // Error handling não crítico: tópicos são opcionais, não quebra funcionalidade
       console.error('Erro ao carregar tópicos:', error);
+      // Não define erro no state - falha silenciosa por ser funcionalidade secundária
     }
   };
 
+  // Effect de inicialização: executa uma vez quando componente monta
   useEffect(() => {
-    fetchNotes();
-    fetchTopics();
-  }, []);
+    // Fetch inicial: carrega dados essenciais da aplicação
+    fetchNotes();   // Notas são priority #1
+    fetchTopics();  // Tópicos são complementares
+    
+    // Estado limpo inicial: garante que dashboard inicia sem seleções
+    setSelectedNote(null);    // Nenhuma nota selecionada
+    setIsCreatingNote(false); // Não está criando nota nova
+  }, []); // Dependency array vazio = executa apenas no mount
 
   // Refresh single note from API
   const refreshSingleNote = async (noteId) => {
@@ -331,7 +392,7 @@ function ObsidianDashboard() {
   // Handle filters change
   const handleFiltersChange = (filters) => {
     // Se não há filtros ativos, mostrar todas as notas
-    if (!filters.searchText && filters.selectedTopics.length === 0 && filters.dateFilter === 'all') {
+    if (!filters.searchText && filters.selectedTopics.length === 0 && filters.dateFilter === 'all' && !filters.customDateStart && !filters.customDateEnd) {
       setNotes(allNotes);
       return;
     }
@@ -371,6 +432,23 @@ function ObsidianDashboard() {
             return noteDate >= weekAgo;
           case 'month':
             return noteDate.getMonth() === now.getMonth() && noteDate.getFullYear() === now.getFullYear();
+          case 'custom':
+            // Filtro por período personalizado
+            if (filters.customDateStart && filters.customDateEnd) {
+              const startDate = new Date(filters.customDateStart);
+              const endDate = new Date(filters.customDateEnd);
+              // Ajustar para incluir o dia inteiro
+              endDate.setHours(23, 59, 59, 999);
+              return noteDate >= startDate && noteDate <= endDate;
+            } else if (filters.customDateStart) {
+              const startDate = new Date(filters.customDateStart);
+              return noteDate >= startDate;
+            } else if (filters.customDateEnd) {
+              const endDate = new Date(filters.customDateEnd);
+              endDate.setHours(23, 59, 59, 999);
+              return noteDate <= endDate;
+            }
+            return true;
           default:
             return true;
         }
