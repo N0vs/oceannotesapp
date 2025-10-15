@@ -1,6 +1,14 @@
 import NotaRepository from '../repositories/NotaRepository.js';
 import NotaTopicoRepository from '../repositories/NotaTopicoRepository.js';
 
+/**
+ * Service para lógica de negócio da entidade Nota
+ * Orquestra operações entre NotaRepository e NotaTopicoRepository
+ * Implementa regras de negócio complexas e validações
+ * 
+ * @class NotaService
+ * @description Service principal para operações de notas incluindo relacionamentos
+ */
 class NotaService {
   /**
    * @deprecated Esta função está obsoleta devido a problemas de consistência de campos.

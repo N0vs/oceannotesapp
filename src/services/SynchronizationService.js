@@ -2,9 +2,16 @@
  * Serviço de Sincronização Offline/Online
  * Segue o Single Responsibility Principle - responsável apenas por sincronização
  * Segue o Dependency Inversion Principle - abstrai operações de rede e armazenamento
+ * 
+ * @class SynchronizationService
+ * @extends EventEmitter
+ * @description Service responsável por sincronização em tempo real via WebSocket
  */
-class SynchronizationService {
+import { EventEmitter } from 'events';
+
+class SynchronizationService extends EventEmitter {
   constructor(database, versionService, conflictDetectionService, historyService) {
+    super();
     this.db = database;
     this.versionService = versionService;
     this.conflictDetectionService = conflictDetectionService;

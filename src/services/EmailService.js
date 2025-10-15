@@ -1,8 +1,12 @@
 import nodemailer from 'nodemailer';
 
 /**
- * Serviço de envio de emails
- * Usado para enviar emails de boas-vindas e notificações
+ * Service para envio de emails e notificações
+ * Gerencia templates de emails e integração com provedores
+ * Utiliza nodemailer para envio via SMTP
+ * 
+ * @class EmailService
+ * @description Service responsável por comunicação via email com usuários
  */
 class EmailService {
   constructor() {
